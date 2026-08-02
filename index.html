@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أطلس الدرس</title>
+
+<!-- أيقونة الموقع وإعدادات إضافته لشاشة الهاتف الرئيسية -->
+<link rel="manifest" href="manifestatlas.json">
+<link rel="icon" type="image/png" sizes="32x32" href="iconsatlas/icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="iconsatlas/icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="iconsatlas/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="iconsatlas/icon-152.png">
+<meta name="theme-color" content="#17212C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="أطلس الدرس">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Assistant:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F5F8; --paper-2:#FFFFFF; --paper-deep:#E7ECF1;
+    --ink:#17212C; --ink-soft:#5C6C7A; --ink-faint:#9FACB8;
+    --line:#E1E7ED;
+    --accent:#FF6A3D; --accent-deep:#D8501F; --accent-soft:rgba(255,106,61,.13);
+    --success:#0FA98F; --success-soft:rgba(15,169,143,.13);
+    --danger:#E14A3B; --danger-soft:rgba(225,74,59,.10);
+    --warn:#EFA023; --warn-deep:#B97613; --warn-soft:rgba(239,160,35,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); min-height:100vh;
+    font-family:'IBM Plex Sans Arabic',sans-serif; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 12% 6%, rgba(255,106,61,.06), transparent 38%),
+      radial-gradient(circle at 88% 94%, rgba(15,169,143,.055), transparent 42%);
+  }
+  button{font-family:inherit;}
+  input,textarea,select{font-family:inherit;}
+  ::selection{ background:var(--accent-soft); }
+  .mono{ font-family:'IBM Plex Mono',monospace; letter-spacing:.3px; }
+  .scrollx::-webkit-scrollbar{ height:0; }
+
+  @keyframes pulseRing{
+    0%,100%{ box-shadow:0 0 0 0 var(--ring-color,rgba(255,106,61,.35)), var(--base-shadow); }
+    50%{ box-shadow:0 0 0 8px var(--ring-color,rgba(255,106,61,0)), var(--base-shadow); }
+  }
+  @keyframes popIn{
+    0%{ transform:translate(-50%,-50%) scale(.45); opacity:0; }
+    55%{ transform:translate(-50%,-50%) scale(1.08); opacity:1; }
+    75%{ transform:translate(-50%,-50%) scale(0.96); opacity:1; }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:0; }
+  }
+  @keyframes pingOut{
+    0%{ transform:translate(-50%,-50%) scale(.55); opacity:.5; }
+    100%{ transform:translate(-50%,-50%) scale(2.1); opacity:0; }
+  }
+  @keyframes toastIn{
+    0%{ opacity:0; transform:translate(-50%,10px); }
+    100%{ opacity:1; transform:translate(-50%,0); }
+  }
+  @keyframes fadeUp{
+    0%{ opacity:0; transform:translateY(6px); }
+    100%{ opacity:1; transform:translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect, useCallback } = React;
+
+const HUES = {arabic:175, hebrew:260, english:40, psych:320, law:230, comm:15, mgmt:150, phil:290};
+const GLYPH = {arabic:'ا', hebrew:'א', english:'A', psych:'⚕', law:'⚖', comm:'✎', mgmt:'⚙', phil:'◈'};
+const SUBJECTS = [
+  {id:'arabic', name:'العربية', isLang:true, dir:'rtl', faceFont:"'IBM Plex Sans Arabic', sans-serif"},
+  {id:'hebrew', name:'العبرية', isLang:true, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+  {id:'english', name:'English', isLang:true, dir:'ltr', faceFont:"'Inter', sans-serif"},
+  {id:'psych', name:'الطب النفسي', isLang:false, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+  {id:'law', name:'القانون', isLang:false, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+  {id:'comm', name:'الاتصال', isLang:false, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+  {id:'mgmt', name:'الإدارة', isLang:false, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+  {id:'phil', name:'الفلسفة', isLang:false, dir:'rtl', faceFont:"'Assistant', sans-serif"},
+];
+// نظام ألوان حيوي وواضح — نفس توزيع الـ hue لكل مادة لكن بتشبّع وحيوية أعلى على خلفية بيضاء
+function subjInk(id){ const h=HUES[id]||0; return `oklch(53% 0.135 ${h})`; }
+function subjInkDeep(id){ const h=HUES[id]||0; return `oklch(40% 0.125 ${h})`; }
+function subjWash(id){ const h=HUES[id]||0; return `oklch(95% 0.035 ${h})`; }
+function subjRing(id){ const h=HUES[id]||0; return `oklch(78% 0.09 ${h})`; }
+
+const LANG_TYPES = [
+  {id:'vocab', label:'مفردات'},
+  {id:'grammar', label:'قواعد'},
+  {id:'sentence', label:'جمل'},
+  {id:'explanation', label:'شرح'},
+  {id:'other', label:'أخرى'},
+];
+function langTypeLabel(id){ const t = LANG_TYPES.find(t=>t.id===id); return t ? t.label : ''; }
+
+// نظام الكتل (blocks) لمحتوى المواضيع داخل الوحدة — يُحفظ كـ JSON داخل حقل content القديم نفسه
+const BLOCK_TYPES = [
+  {id:'heading', label:'عنوان فرعي', icon:'H'},
+  {id:'paragraph', label:'فقرة', icon:'¶'},
+  {id:'bullets', label:'نقاط', icon:'•'},
+  {id:'rule', label:'قاعدة', icon:'⚏'},
+  {id:'example', label:'مثال', icon:'؟'},
+  {id:'vocab', label:'كلمة ومعنى', icon:'أب'},
+  {id:'important', label:'معلومة مهمة', icon:'!'},
+];
+function blockLabel(id){ const t = BLOCK_TYPES.find(t=>t.id===id); return t ? t.label : id; }
+function newBlockId(){ return 'blk'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function makeBlock(type){
+  const id = newBlockId();
+  if(type==='heading') return {id,type,text:''};
+  if(type==='paragraph') return {id,type,text:''};
+  if(type==='bullets') return {id,type,items:['']};
+  if(type==='rule') return {id,type,text:''};
+  if(type==='example') return {id,type,term:'',text:''};
+  if(type==='vocab') return {id,type,items:[{word:'',meaning:''}]};
+  if(type==='important') return {id,type,text:''};
+  return {id,type:'paragraph',text:''};
+}
+// يحوّل content المخزّن (JSON كتل أو نص قديم عادي) إلى مصفوفة كتل موحّدة
+function parseNoteBlocks(note){
+  if(!note || !note.content) return [];
+  const raw = note.content;
+  if(typeof raw==='string' && raw.trim().startsWith('[')){
+    try{ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }catch(e){}
+  }
+  return [{id:'legacy', type:'paragraph', text: raw}];
+}
+function serializeBlocks(blocks){ return JSON.stringify(blocks); }
+
+const SEED_EXAMPLES = {
+  arabic: {
+    title:'الأزمنة: الماضي البسيط', description:'أساسيات تصريف الفعل في الزمن الماضي.',
+    cards:[
+      ['كَتَبَ','هو كتب — الفعل الماضي من "يكتب" (to write)'],
+      ['ذَهَبَتْ','هي ذهبت — تأنيث الفعل الماضي بإضافة تاء التأنيث'],
+      ['ما رَأَيْتُ','لم أرَ — نفي الفعل الماضي بأداة "ما"'],
+    ],
+    quiz:[['أي جملة تستخدم الزمن الماضي بشكل صحيح؟','هو كتبَ الرسالة أمس','هو يكتبُ الرسالة الآن','هو سوف يكتبُ الرسالة','هو كاتبٌ الرسالة','الفعل "كتبَ" مبني على الفتح ويدل على حدث مكتمل في الماضي.']],
+    note:{title:'ملخص القاعدة', content:'الفعل الماضي في العربية يُبنى غالبًا على الفتح، ويتغيّر آخره حسب الفاعل (تاء الفاعل، واو الجماعة، ألف الاثنين...). مثال: كتبَ / كتبَتْ / كتبوا / كتبنا.'}
+  },
+  hebrew: {
+    title:'בניין פָּעַל בזמן עבר', description:'יסודות נטיית הפועל בבניין הבסיסי.',
+    cards:[
+      ['הוא כתב','צורת עבר, גוף שלישי יחיד זכר, בניין פעל'],
+      ['הם למדו','צורת עבר, גוף שלישי רבים, שורש ל.מ.ד'],
+      ['מה ההבדל בין "אכלתי" ל"אוכל"?','אכלתי = עבר, אוכל = הווה/עתיד'],
+    ],
+    quiz:[['איזו מהצורות הבאות היא בזמן עבר?','היא כתבה מכתב','היא כותבת מכתב','היא תכתוב מכתב','לכתוב מכתב','הסיומת "-ה" בגוף שלישי יחיד נקבה מציינת פעולה שהושלמה בעבר.']],
+    note:{title:'סיכום הנטייה', content:'בבניין פעל בעבר הפועל נוטה לפי גוף, מספר ומין: כתבתי / כתבת / כתב / כתבה / כתבנו / כתבתם / כתבו.'}
+  },
+  english: {
+    title:'Present Perfect Tense', description:'How and when to use "have/has + past participle".',
+    cards:[
+      ['I have finished the report.','Present perfect — action completed with relevance to now'],
+      ['She has never been to Jerusalem.','Used with "never" for life experience up to now'],
+      ['Have you seen this before?','Question form using "have/has" + subject + past participle'],
+    ],
+    quiz:[['Which sentence correctly uses the present perfect?','They have already left.','They left already yesterday.','They are leaving now.','They will leave soon.','"Have + past participle" links a past action to the present moment, unlike simple past.']],
+    note:{title:'Quick summary', content:'Present perfect = have/has + past participle. Use it for past actions with a present result, life experience, or unfinished time periods (e.g. "this week").'}
+  },
+  psych: {
+    title:'הפרעות חרדה — יסודות', description:'מושגי מפתח באבחון וזיהוי הפרעות חרדה.',
+    cards:[
+      ['GAD (הפרעת חרדה מוכללת)','דאגה מוגזמת ובלתי נשלטת הנמשכת 6 חודשים ומעלה, ברוב ימי השבוע'],
+      ['התקף פאניקה','פרק פתאומי של פחד עז עם תסמינים גופניים (דופק מהיר, קוצר נשימה) המגיע לשיא תוך דקות'],
+      ['הימנעות (Avoidance)','דפוס התנהגותי מרכזי בהפרעות חרדה — הימנעות ממצבים המעוררים חרדה, המחזק את ההפרעה'],
+    ],
+    quiz:[['מהו קריטריון משך הזמן הנדרש לאבחון הפרעת חרדה מוכללת (GAD) לפי ה-DSM-5?','לפחות 6 חודשים','לפחות שבועיים','לפחות חודש','לפחות שנה','משך זמן ממושך מבדיל בין דאגה נורמטיבית לבין הפרעת חרדה מוכללת מבחינה קלינית.']],
+    note:{title:'נקודות למעקב קליני', content:'בהערכת חולה עם חרדה חשוב לבדוק: משך התסמינים, מידת ההשפעה התפקודית, קיום הימנעות, ותסמינים גופניים נלווים. יש לשלול גורמים גופניים (כגון בעיית בלוטת התריס) לפני אבחון פסיכיאטרי.'}
+  },
+  law: {
+    title:'יסודות דיני חוזים — כריתת חוזה', description:'המושגים הבסיסיים בהליך כריתת חוזה תקף.',
+    cards:[
+      ['הצעה (Offer)','פנייה המעידה על גמירת דעת להתקשר בחוזה, מסוימת דיה'],
+      ['קיבול (Acceptance)','הבעת הסכמה גמורה ומוחלטת להצעה, התואמת אותה'],
+      ['גמירת דעת','היסוד הנפשי המעיד על כוונה רצינית להתקשר בחוזה מחייב'],
+    ],
+    quiz:[['מהם שני היסודות המרכזיים הנדרשים לכריתת חוזה תקף לפי חוק החוזים?','גמירת דעת ומסוימות','כתב ועדים','תמורה כספית ואישור עורך דין','רישום בטאבו','עפ"י סעיף 2 לחוק החוזים, הצעה וקיבול נבחנים לפי קיומם של גמירת דעת ומסוימות מספקת.']],
+    note:{title:'סיכום קצר', content:'כריתת חוזה מתרחשת עם קיבול ההצעה, ומחייבת גמירת דעת של שני הצדדים ומסוימות מספקת בתנאים המהותיים (זהות הצדדים, נכס/שירות, מחיר).'}
+  },
+  comm: {
+    title:'תיאוריות תקשורת — יסודות', description:'מודלים בסיסיים להבנת תהליך התקשורת.',
+    cards:[
+      ['מודל שאנון-ויבר','מודל ליניארי בסיסי: מקור → מקודד → ערוץ → מפוענח → יעד, עם רעש אפשרי בערוץ'],
+      ['שמירת סדר יום (Agenda Setting)','תיאוריה לפיה התקשורת לא אומרת לנו מה לחשוב, אלא על מה לחשוב'],
+      ['פער דיגיטלי','אי-שוויון בגישה לטכנולוגיות מידע ותקשורת בין קבוצות באוכלוסייה'],
+    ],
+    quiz:[['לפי תיאוריית שימושים וסיפוקים, מה מניע את הקהל?','צרכים אישיים שהקהל מבקש לספק באמצעות המדיה','השפעה ישירה וחזקה של המדיה על הקהל','העדר כל השפעה של המדיה','שליטה מוחלטת של הבעלים על תוכן המדיה','התיאוריה מניחה קהל אקטיבי הבוחר תוכן לפי צרכים כמו מידע, בידור והשתייכות.']],
+    note:{title:'סיכום המודלים', content:'תיאוריות תקשורת נעות בין מודלים ליניאריים (שאנון-ויבר) לבין מודלים המדגישים קהל אקטיבי (שימושים וסיפוקים) והשפעות עקיפות לטווח ארוך (שמירת סדר יום, פער דיגיטלי).'}
+  },
+  mgmt: {
+    title:'תפקידי הניהול הבסיסיים', description:'ארבע הפונקציות הקלאסיות של תהליך הניהול.',
+    cards:[
+      ['תכנון (Planning)','קביעת יעדים ובחירת דרכי הפעולה להשגתם מראש'],
+      ['ארגון (Organizing)','חלוקת משאבים ומשימות למבנה ברור של תפקידים וסמכויות'],
+      ['בקרה (Controlling)','השוואת ביצועים בפועל מול היעדים ותיקון סטיות'],
+    ],
+    quiz:[['איזו מהפונקציות הבאה מתמקדת בהשוואת התוצאות בפועל אל מול היעדים שנקבעו?','בקרה','תכנון','ארגון','גיוס','הבקרה סוגרת את מעגל הניהול על ידי מדידת ביצועים בפועל אל מול התכנון המקורי.']],
+    note:{title:'סיכום קצר', content:'ארבע פונקציות הניהול הקלאסיות (לפי פייול ואחרים): תכנון, ארגון, הנעה/הובלה (Leading), ובקרה. הן פועלות במחזור מתמשך ולא כשלבים חד-פעמיים.'}
+  },
+  phil: {
+    title:'תיאוריית הידע — מבוא לאפיסטמולוגיה', description:'שאלות יסוד על טבע הידע וההצדקה.',
+    cards:[
+      ['ידע כאמונה מוצדקת אמיתית (JTB)','הגדרה קלאסית: אדם יודע P אם ורק אם הוא מאמין P, P אמיתי, וההאמנה מוצדקת'],
+      ['בעיית גטייה','דוגמאות נגד להגדרת JTB — מקרים של אמונה מוצדקת ואמיתית שאינטואיטיבית אינם נחשבים "ידע"'],
+      ['ספקנות (Skepticism)','העמדה הפילוסופית המטילה ספק ביכולת שלנו להגיע לידע ודאי על העולם'],
+    ],
+    quiz:[['מהם שלושת התנאים בהגדרה הקלאסית של ידע (JTB)?','אמונה, אמת והצדקה','אמונה, ודאות וזיכרון','תפיסה, שפה והיגיון','ניסיון, אינטואיציה ואמונה','ההגדרה הקלאסית של אפלטון דורשת שהאמונה תהיה גם אמיתית וגם מוצדקת, לא רק מוחזקת.']],
+    note:{title:'סיכום קצר', content:'האפיסטמולוגיה עוסקת בשאלות: מהו ידע? כיצד מצדיקים אמונות? ומהם גבולות הידע האנושי. בעיית גטייה (1963) ערערה את ההגדרה הקלאסית וטרם נמצא לה פתרון מוסכם.'}
+  }
+};
+
+
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyL716IXVfxT2ojg1BXF6Bb4JEFuf6mKnf5mkLwSlqW5dvatucyGwW7xX15Dd1mJMQY/exec";
+const BOX_INTERVAL_DAYS = {1:0, 2:1, 3:3, 4:7, 5:14};
+const LS_KEY = 'lc_data_v1';
+const LS_STREAK_KEY = 'lc_streak_v1';
+
+class App extends React.Component {
+  constructor(props){
+    super(props);
+    this.state = {
+      data: {lessons:[], units:[], cards:[], quiz:[], notes:[], progress:[]},
+      subject:'arabic', uiMode:'study', view:'home', lessonId:null, unitId:null, detailTab:'cards',
+      cardIndex:0, flipped:false,
+      quizIndex:0, quizAnswered:false, quizSessionCorrect:0, quizSessionTotal:0, lastAnsweredIdx:-1,
+      cardTypeFilter:'all', noteTypeFilter:'all',
+      cfgModalOpen:false, unitModalOpen:false, lessonModalOpen:false,
+      editLessonId:null, editUnitId:null, editNoteId:null, editCardId:null, editQId:null,
+      addNoteOpen:false, addCardOpen:false, addQOpen:false,
+      noteImageData:'', cardImageData:'',
+      toast:'', syncKind:'', syncLabel:'غير متصل بالجدول',
+      streak:1, celebrate:false, celebrateGlyph:'',
+      scriptUrl: DEFAULT_SCRIPT_URL,
+      isDesktop: (typeof window!=='undefined' && window.innerWidth>=880),
+      deskSubject:'arabic', deskLessonId:null, deskUnitId:null, deskTab:'notes',
+      noteEditorOpen:false, noteEditorId:null, noteEditorTitle:'', noteEditorCtype:'other', noteEditorBlocks:[],
+    };
+    ['lessonTitle','lessonDesc','unitTitle','unitDesc','unitSummary','scriptUrlInput','noteTitle','noteContent','noteType','noteImage','cardFront','cardBack','cardType','cardImage','qText','opt0','opt1','opt2','opt3','qExplain'].forEach(n=>{
+      this[n+'Ref'] = React.createRef();
+    });
+  }
+
+  componentDidMount(){
+    this.computeStreak();
+    this.loadLocal();
+    this.migrateLessons();
+    if(this.state.scriptUrl) this.loadAll();
+    this._onResize = ()=>{ const isDesktop = window.innerWidth>=880; if(isDesktop!==this.state.isDesktop) this.setState({isDesktop}); };
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount(){
+    if(this._onResize) window.removeEventListener('resize', this._onResize);
+  }
+
+  touch(patch){ this.setState(patch || {}); }
+  uid(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  todayStr(){ return new Date().toISOString().slice(0,10); }
+  addDays(dateStr, days){ const d = new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+  isDue(card){ if(!card.nextReview) return true; return card.nextReview <= this.todayStr(); }
+
+  computeStreak(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(LS_STREAK_KEY) || '{"count":0,"last":""}');
+      const today = this.todayStr();
+      if(raw.last === today){ this.state.streak = raw.count || 1; return; }
+      if(raw.last === this.addDays(today,-1)){ raw.count = (raw.count||0)+1; } else { raw.count = 1; }
+      raw.last = today;
+      localStorage.setItem(LS_STREAK_KEY, JSON.stringify(raw));
+      this.state.streak = raw.count;
+    }catch(e){ this.state.streak = 1; }
+  }
+  loadLocal(){
+    try{ const raw = localStorage.getItem(LS_KEY); if(raw){ const parsed = JSON.parse(raw); this.state.data = Object.assign({lessons:[], units:[], cards:[], quiz:[], notes:[], progress:[]}, parsed); } }catch(e){}
+  }
+  saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(this.state.data)); }catch(e){} }
+
+  currentSubject(){ return SUBJECTS.find(s=>s.id===this.state.subject); }
+  subjectLessons(){ return this.state.data.lessons.filter(l=>l.subject===this.state.subject).slice().sort((a,b)=>(+a.order||0)-(+b.order||0)); }
+  currentLesson(){ return this.state.data.lessons.find(l=>l.id===this.state.lessonId); }
+  lessonUnits(lessonId){ return this.state.data.units.filter(u=>u.lessonId===lessonId).slice().sort((a,b)=>(+a.order||0)-(+b.order||0)); }
+  isLessonDone(lessonId){ const us = this.lessonUnits(lessonId); return us.length>0 && us.every(u=>this.isUnitDone(u.id)); }
+  subjectUnits(){ return this.state.data.units.filter(u=>u.subject===this.state.subject).slice().sort((a,b)=>(+a.order||0)-(+b.order||0)); }
+  currentUnit(){ return this.state.data.units.find(u=>u.id===this.state.unitId); }
+  unitCards(unitId){ return this.state.data.cards.filter(c=>c.unitId===unitId); }
+  unitQuiz(unitId){ return this.state.data.quiz.filter(q=>q.unitId===unitId); }
+  unitNotes(unitId){ return this.state.data.notes.filter(n=>n.unitId===unitId); }
+  unitProgress(unitId){ const p = this.state.data.progress.find(p=>p.unitId===unitId); return p; }
+  isUnitDone(unitId){ const p = this.unitProgress(unitId); return !!(p && (p.completed===true || p.completed==='TRUE' || p.completed===1 || p.completed==='1')); }
+
+  // ---- تنقّل نسخة الحاسوب (شجرة منفصلة عن مسار الهاتف) ----
+  deskCurrentSubject(){ return SUBJECTS.find(s=>s.id===this.state.deskSubject); }
+  deskSubjectLessons(){ return this.state.data.lessons.filter(l=>l.subject===this.state.deskSubject).slice().sort((a,b)=>(+a.order||0)-(+b.order||0)); }
+  deskCurrentLesson(){ return this.state.data.lessons.find(l=>l.id===this.state.deskLessonId); }
+  deskCurrentUnit(){ return this.state.data.units.find(u=>u.id===this.state.deskUnitId); }
+  deskSelectSubject(id){ this.setState({deskSubject:id, deskLessonId:null, deskUnitId:null}); }
+  deskSelectLesson(id){ this.setState({deskLessonId: this.state.deskLessonId===id?null:id, deskUnitId:null}); }
+  deskSelectUnit(id){ this.setState({deskUnitId:id, deskTab:'notes'}); }
+
+  setSyncStatus(kind,label){ this.setState({syncKind:kind, syncLabel:label}); }
+  showToast(msg){ this.setState({toast:msg}); clearTimeout(this._toastTm); this._toastTm = setTimeout(()=>this.setState({toast:''}), 2400); }
+
+  async apiCall(payload){
+    const url = this.state.scriptUrl;
+    if(!url){ this.setSyncStatus('err','غير متصل — اضغط "الجدول"'); return null; }
+    this.setSyncStatus('pending','مزامنة...');
+    try{
+      const res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload)});
+      const json = await res.json();
+      this.setSyncStatus('ok','متزامن');
+      return json;
+    }catch(err){
+      this.setSyncStatus('err','خطأ مزامنة');
+      this.showToast('تعذّر الاتصال بالجدول — البيانات محفوظة محليًا فقط');
+      return null;
+    }
+  }
+  async persist(sheet, action, record){ this.saveLocal(); return this.apiCall({action, sheet, record}); }
+  async loadAll(){
+    const res = await this.apiCall({action:'getAll'});
+    if(res && res.ok){
+      const data = {lessons:res.lessons||[], units:res.units||[], cards:res.cards||[], quiz:res.quiz||[], notes:res.notes||[], progress:res.progress||[]};
+      this.setState({data});
+      this.saveLocal();
+      this.migrateLessons();
+    }
+  }
+
+  // كل وحدة قديمة كانت مربوطة مباشرة بالمادة تصير درسًا مستقلًا يحوي وحدة واحدة،
+  // بحيث لا يضيع أي محتوى قديم عند إضافة طبقة "الدروس" فوق "الوحدات".
+  migrateLessons(){
+    const orphanUnits = this.state.data.units.filter(u=>!u.lessonId);
+    if(orphanUnits.length===0) return;
+    const bySubject = {};
+    orphanUnits.forEach(u=>{ (bySubject[u.subject] = bySubject[u.subject]||[]).push(u); });
+    Object.keys(bySubject).forEach(subjId=>{
+      const existingLessons = this.state.data.lessons.filter(l=>l.subject===subjId);
+      let order = existingLessons.length;
+      bySubject[subjId].sort((a,b)=>(+a.order||0)-(+b.order||0)).forEach(u=>{
+        order += 1;
+        const lessonRec = {id:this.uid(), subject:subjId, order, title:u.title, description:u.description||''};
+        this.state.data.lessons.push(lessonRec);
+        this.persist('Lessons','add',lessonRec);
+        u.lessonId = lessonRec.id;
+        this.persist('Units','update',u);
+      });
+    });
+    this.touch();
+  }
+
+  async loadExampleUnit(subjectId){
+    const ex = SEED_EXAMPLES[subjectId];
+    if(!ex) return;
+    const lessons = this.state.data.lessons.filter(l=>l.subject===subjectId);
+    const lessonRec = {id:this.uid(), subject:subjectId, order:lessons.length+1, title:ex.title, description:ex.description};
+    this.state.data.lessons.push(lessonRec);
+    await this.persist('Lessons','add',lessonRec);
+    const units = this.state.data.units.filter(u=>u.lessonId===lessonRec.id);
+    const unitRec = {id:this.uid(), subject:subjectId, lessonId:lessonRec.id, order:units.length+1, title:ex.title, description:ex.description};
+    this.state.data.units.push(unitRec);
+    await this.persist('Units','add',unitRec);
+    for(const [front, back] of ex.cards){
+      const rec = {id:this.uid(), subject:subjectId, unitId:unitRec.id, front, back, box:1, nextReview:this.todayStr(), created:this.todayStr()};
+      this.state.data.cards.push(rec);
+      await this.persist('Cards','add',rec);
+    }
+    for(const [question, opt1, opt2, opt3, opt4, explanation] of ex.quiz){
+      const rec = {id:this.uid(), subject:subjectId, unitId:unitRec.id, question, opt1, opt2, opt3, opt4, correctIndex:0, explanation};
+      this.state.data.quiz.push(rec);
+      await this.persist('Quiz','add',rec);
+    }
+    const noteRec = {id:this.uid(), subject:subjectId, unitId:unitRec.id, title:ex.note.title, content:ex.note.content, created:this.todayStr(), updated:this.todayStr()};
+    this.state.data.notes.push(noteRec);
+    await this.persist('Notes','add',noteRec);
+    this.showToast('أُضيفت وحدة تجريبية — يمكنك تعديلها أو حذفها');
+    this.touch();
+  }
+
+  resetPlayStateObj(){ return {cardIndex:0, flipped:false, quizIndex:0, quizAnswered:false, quizSessionCorrect:0, quizSessionTotal:0, cardTypeFilter:'all', noteTypeFilter:'all', detailTab:'notes'}; }
+  selectSubject(id){ this.setState({subject:id, view:'map', lessonId:null, unitId:null, ...this.resetPlayStateObj()}); }
+  openLesson(lessonId){ this.setState({lessonId, view:'lesson', unitId:null, ...this.resetPlayStateObj()}); }
+  openUnit(unitId){ this.setState({unitId, view:'unit', ...this.resetPlayStateObj()}); }
+  backToMap(){ this.setState({view:'map', lessonId:null, unitId:null}); }
+  backToLesson(){ this.setState({view:'lesson', unitId:null}); }
+  goHome(){ this.setState({view:'home', lessonId:null, unitId:null}); }
+  setMode(m){ this.setState({uiMode:m}); }
+  setDetailTab(t){ this.setState({detailTab:t}); }
+
+  async toggleUnitComplete(unitId, completed){
+    let p = this.unitProgress(unitId);
+    if(!p){ p = {id:this.uid(), subject:this.state.subject, unitId, completed, completedDate: completed?this.todayStr():''}; this.state.data.progress.push(p); }
+    else { p.completed = completed; p.completedDate = completed ? this.todayStr() : ''; }
+    this.touch();
+    await this.persist('Progress','upsert',p);
+    if(completed){
+      this.setState({celebrate:true, celebrateGlyph: GLYPH[this.state.subject] || '✓'});
+      this.playTone(660,0.09); setTimeout(()=>this.playTone(880,0.12), 110);
+      setTimeout(()=>this.setState({celebrate:false}), 1000);
+      this.showToast('عمل رائع! أُختمت الوحدة');
+    } else this.showToast('تم إلغاء الإكمال');
+  }
+
+  async deleteUnit(unitId){
+    if(!confirm('حذف الوحدة وكل محتواها (بطاقات، أسئلة، دروس)؟')) return;
+    this.state.data.units = this.state.data.units.filter(u=>u.id!==unitId);
+    this.state.data.cards = this.state.data.cards.filter(c=>c.unitId!==unitId);
+    this.state.data.quiz = this.state.data.quiz.filter(q=>q.unitId!==unitId);
+    this.state.data.notes = this.state.data.notes.filter(n=>n.unitId!==unitId);
+    this.state.data.progress = this.state.data.progress.filter(p=>p.unitId!==unitId);
+    const patch = {};
+    if(this.state.unitId===unitId){ patch.view='lesson'; patch.unitId=null; }
+    if(this.state.deskUnitId===unitId){ patch.deskUnitId=null; }
+    this.setState(Object.keys(patch).length ? patch : {});
+    if(!Object.keys(patch).length) this.touch();
+    await this.persist('Units','delete',{id:unitId});
+  }
+
+  async deleteLesson(lessonId){
+    if(!confirm('حذف الدرس وكل ما فيه من وحدات وبطاقات وأسئلة؟')) return;
+    const unitIds = this.lessonUnits(lessonId).map(u=>u.id);
+    this.state.data.lessons = this.state.data.lessons.filter(l=>l.id!==lessonId);
+    this.state.data.units = this.state.data.units.filter(u=>u.lessonId!==lessonId);
+    this.state.data.cards = this.state.data.cards.filter(c=>!unitIds.includes(c.unitId));
+    this.state.data.quiz = this.state.data.quiz.filter(q=>!unitIds.includes(q.unitId));
+    this.state.data.notes = this.state.data.notes.filter(n=>!unitIds.includes(n.unitId));
+    this.state.data.progress = this.state.data.progress.filter(p=>!unitIds.includes(p.unitId));
+    const patch = {};
+    if(this.state.lessonId===lessonId){ patch.view='map'; patch.lessonId=null; patch.unitId=null; }
+    if(this.state.deskLessonId===lessonId){ patch.deskLessonId=null; patch.deskUnitId=null; }
+    this.setState(Object.keys(patch).length ? patch : {});
+    if(!Object.keys(patch).length) this.touch();
+    await this.persist('Lessons','delete',{id:lessonId});
+    for(const uid of unitIds){ await this.persist('Units','delete',{id:uid}); }
+  }
+
+  openLessonModal(lesson, subjectId){
+    this.setState({lessonModalOpen:true, editLessonId: lesson ? lesson.id : null, modalSubject: subjectId || this.state.subject});
+    setTimeout(()=>{
+      if(this.lessonTitleRef.current){
+        this.lessonTitleRef.current.value = lesson ? lesson.title : '';
+        this.lessonDescRef.current.value = lesson ? (lesson.description||'') : '';
+      }
+    },0);
+  }
+  closeLessonModal(){ this.setState({lessonModalOpen:false, editLessonId:null}); }
+  async saveLessonModal(){
+    const title = this.lessonTitleRef.current.value.trim();
+    const description = this.lessonDescRef.current.value.trim();
+    if(!title){ this.showToast('يجب إدخال اسم الدرس'); return; }
+    if(this.state.editLessonId){
+      const existing = this.state.data.lessons.find(l=>l.id===this.state.editLessonId);
+      if(existing){
+        existing.title = title; existing.description = description;
+        this.setState({lessonModalOpen:false, editLessonId:null});
+        await this.persist('Lessons','update',existing);
+        return;
+      }
+    }
+    const subjectId = this.state.modalSubject || this.state.subject;
+    const lessons = this.state.data.lessons.filter(l=>l.subject===subjectId);
+    const rec = {id:this.uid(), subject:subjectId, order:lessons.length+1, title, description};
+    this.state.data.lessons.push(rec);
+    this.setState({lessonModalOpen:false});
+    await this.persist('Lessons','add',rec);
+  }
+
+  openUnitModal(unit, lessonId){
+    const lid = lessonId || this.state.lessonId;
+    this.setState({unitModalOpen:true, editUnitId: unit ? unit.id : null, modalLessonId: lid});
+    setTimeout(()=>{
+      if(this.unitTitleRef.current){
+        this.unitTitleRef.current.value = unit ? unit.title : '';
+        this.unitDescRef.current.value = unit ? (unit.description||'') : '';
+        this.unitSummaryRef.current.value = unit ? (unit.summary||'') : '';
+      }
+    },0);
+  }
+  closeUnitModal(){ this.setState({unitModalOpen:false, editUnitId:null}); }
+  async saveUnitModal(){
+    const title = this.unitTitleRef.current.value.trim();
+    const description = this.unitDescRef.current.value.trim();
+    const summary = this.unitSummaryRef.current.value.trim();
+    if(!title){ this.showToast('يجب إدخال اسم الوحدة'); return; }
+    if(this.state.editUnitId){
+      const existing = this.state.data.units.find(u=>u.id===this.state.editUnitId);
+      if(existing){
+        existing.title = title; existing.description = description; existing.summary = summary;
+        this.setState({unitModalOpen:false, editUnitId:null});
+        await this.persist('Units','update',existing);
+        return;
+      }
+    }
+    const lessonId = this.state.modalLessonId || this.state.lessonId;
+    const parentLesson = this.state.data.lessons.find(l=>l.id===lessonId);
+    const subjectId = parentLesson ? parentLesson.subject : this.state.subject;
+    const units = this.lessonUnits(lessonId);
+    const rec = {id:this.uid(), subject:subjectId, lessonId, order:units.length+1, title, description, summary};
+    this.state.data.units.push(rec);
+    this.setState({unitModalOpen:false});
+    await this.persist('Units','add',rec);
+  }
+
+  openCfgModal(){ this.setState({cfgModalOpen:true}); setTimeout(()=>{ if(this.scriptUrlInputRef.current) this.scriptUrlInputRef.current.value = this.state.scriptUrl || ''; },0); }
+  closeCfgModal(){ this.setState({cfgModalOpen:false}); }
+  saveCfg(){
+    const val = this.scriptUrlInputRef.current.value.trim();
+    if(val){ this.setState({scriptUrl:val, cfgModalOpen:false}); this.showToast('جارٍ الاتصال بالجدول...'); setTimeout(()=>this.loadAll(),0); }
+  }
+
+  // ---- محرر المواضيع بالكتل (يُستخدم من نسخة الحاسوب فقط) ----
+  openNoteEditor(note, unitId, subjectId){
+    this.setState({
+      noteEditorOpen:true, noteEditorId: note?note.id:null,
+      noteEditorTitle: note?note.title:'', noteEditorCtype: note?(note.ctype||'other'):'other',
+      noteEditorImage: note?(note.image||''):'',
+      noteEditorBlocks: note?parseNoteBlocks(note):[],
+      noteEditorUnitId: unitId, noteEditorSubject: subjectId,
+    });
+  }
+  closeNoteEditor(){ this.setState({noteEditorOpen:false}); }
+  setNoteEditorTitle(v){ this.setState({noteEditorTitle:v}); }
+  setNoteEditorCtype(v){ this.setState({noteEditorCtype:v}); }
+  async handleNoteEditorImage(e){
+    const file = e.target.files[0];
+    if(!file){ this.setState({noteEditorImage:''}); return; }
+    const compressed = await this.fileToCompressedImage(file);
+    if(!compressed){ this.showToast('الصورة كبيرة جدًا، جرّب صورة أخرى'); return; }
+    this.setState({noteEditorImage:compressed});
+  }
+  addEditorBlock(type){ this.setState({noteEditorBlocks:[...this.state.noteEditorBlocks, makeBlock(type)]}); }
+  removeEditorBlock(idx){ const bs=this.state.noteEditorBlocks.slice(); bs.splice(idx,1); this.setState({noteEditorBlocks:bs}); }
+  moveEditorBlock(idx,dir){
+    const bs=this.state.noteEditorBlocks.slice(); const j=idx+dir;
+    if(j<0||j>=bs.length) return;
+    const tmp=bs[idx]; bs[idx]=bs[j]; bs[j]=tmp;
+    this.setState({noteEditorBlocks:bs});
+  }
+  updateEditorBlock(idx, patch){
+    const bs=this.state.noteEditorBlocks.slice();
+    bs[idx]=Object.assign({}, bs[idx], patch);
+    this.setState({noteEditorBlocks:bs});
+  }
+  addBulletItem(idx){ const bs=this.state.noteEditorBlocks.slice(); bs[idx]=Object.assign({},bs[idx],{items:[...bs[idx].items,'']}); this.setState({noteEditorBlocks:bs}); }
+  updateBulletItem(idx,i,val){ const bs=this.state.noteEditorBlocks.slice(); const items=bs[idx].items.slice(); items[i]=val; bs[idx]=Object.assign({},bs[idx],{items}); this.setState({noteEditorBlocks:bs}); }
+  removeBulletItem(idx,i){ const bs=this.state.noteEditorBlocks.slice(); const items=bs[idx].items.slice(); items.splice(i,1); bs[idx]=Object.assign({},bs[idx],{items}); this.setState({noteEditorBlocks:bs}); }
+  addVocabItem(idx){ const bs=this.state.noteEditorBlocks.slice(); bs[idx]=Object.assign({},bs[idx],{items:[...bs[idx].items,{word:'',meaning:''}]}); this.setState({noteEditorBlocks:bs}); }
+  updateVocabItem(idx,i,field,val){ const bs=this.state.noteEditorBlocks.slice(); const items=bs[idx].items.slice(); items[i]=Object.assign({},items[i],{[field]:val}); bs[idx]=Object.assign({},bs[idx],{items}); this.setState({noteEditorBlocks:bs}); }
+  removeVocabItem(idx,i){ const bs=this.state.noteEditorBlocks.slice(); const items=bs[idx].items.slice(); items.splice(i,1); bs[idx]=Object.assign({},bs[idx],{items}); this.setState({noteEditorBlocks:bs}); }
+  async saveNoteEditor(){
+    const title = (this.state.noteEditorTitle||'').trim();
+    if(!title){ this.showToast('يجب إدخال عنوان الموضوع'); return; }
+    const content = serializeBlocks(this.state.noteEditorBlocks);
+    const ctype = this.state.noteEditorCtype;
+    const image = this.state.noteEditorImage || '';
+    if(this.state.noteEditorId){
+      const existing = this.state.data.notes.find(n=>n.id===this.state.noteEditorId);
+      if(existing){
+        existing.title=title; existing.content=content; existing.ctype=ctype; existing.image=image; existing.updated=this.todayStr();
+        this.setState({noteEditorOpen:false});
+        await this.persist('Notes','update',existing);
+        return;
+      }
+    }
+    const rec = {id:this.uid(), subject:this.state.noteEditorSubject, unitId:this.state.noteEditorUnitId, title, content, ctype, image, created:this.todayStr(), updated:this.todayStr()};
+    this.state.data.notes.push(rec);
+    this.setState({noteEditorOpen:false});
+    await this.persist('Notes','add',rec);
+  }
+  async deleteNote(id){
+    this.state.data.notes = this.state.data.notes.filter(n=>n.id!==id);
+    this.touch();
+    await this.persist('Notes','delete',{id});
+  }
+  setNoteFilter(t){ this.setState({noteTypeFilter:t}); }
+
+  toggleAddCard(){
+    const opening = !this.state.addCardOpen;
+    this.setState({addCardOpen:opening, editCardId:null, cardImageData:''});
+    if(opening){ setTimeout(()=>{ if(this.cardFrontRef.current){ this.cardFrontRef.current.value=''; this.cardBackRef.current.value=''; if(this.cardImageRef.current) this.cardImageRef.current.value=''; } },0); }
+  }
+  editCard(card){
+    this.setState({addCardOpen:true, editCardId:card.id, cardImageData: card.image||''});
+    setTimeout(()=>{
+      if(this.cardFrontRef.current){
+        this.cardFrontRef.current.value = card.front;
+        this.cardBackRef.current.value = card.back;
+        if(this.cardTypeRef.current) this.cardTypeRef.current.value = card.ctype || 'other';
+      }
+    },0);
+  }
+  async handleCardImage(e){
+    const file = e.target.files[0];
+    if(!file){ this.setState({cardImageData:''}); return; }
+    const compressed = await this.fileToCompressedImage(file);
+    if(!compressed){ this.showToast('الصورة كبيرة جدًا، جرّب صورة أخرى'); return; }
+    this.setState({cardImageData:compressed});
+  }
+  async saveCard(){
+    const front = this.cardFrontRef.current.value.trim();
+    const back = this.cardBackRef.current.value.trim();
+    const subj = this.deskCurrentSubject();
+    const ctype = subj.isLang ? this.cardTypeRef.current.value : '';
+    const image = this.state.cardImageData || '';
+    if(!front || !back){ this.showToast('يجب تعبئة الوجهين'); return; }
+    if(this.state.editCardId){
+      const existing = this.state.data.cards.find(c=>c.id===this.state.editCardId);
+      if(existing){
+        existing.front = front; existing.back = back; existing.ctype = ctype; existing.image = image;
+        this.setState({addCardOpen:false, editCardId:null, cardImageData:''});
+        await this.persist('Cards','update',existing);
+        return;
+      }
+    }
+    const unit = this.deskCurrentUnit();
+    const rec = {id:this.uid(), subject:this.state.deskSubject, unitId:unit.id, front, back, ctype, image, box:1, nextReview:this.todayStr(), created:this.todayStr()};
+    this.state.data.cards.push(rec);
+    this.cardFrontRef.current.value=''; this.cardBackRef.current.value=''; if(this.cardImageRef.current) this.cardImageRef.current.value='';
+    this.setState({addCardOpen:false, cardImageData:'', cardIndex:0, flipped:false});
+    await this.persist('Cards','add',rec);
+  }
+  setCardFilter(t){ this.setState({cardTypeFilter:t, cardIndex:0, flipped:false}); }
+  flipCard(){ this.playTone(this.state.flipped?520:700, 0.07); this.setState({flipped: !this.state.flipped}); }
+  async gradeCard(card, deck, grade){
+    let box = card.box || 1;
+    if(grade==='hard') box=1; else if(grade==='mid') box=Math.max(1,box); else box=Math.min(5,box+1);
+    card.box = box;
+    card.nextReview = this.addDays(this.todayStr(), BOX_INTERVAL_DAYS[box] ?? 0);
+    this.playTone(grade==='easy'?880:grade==='mid'?600:420, 0.1);
+    const nextIndex = this.state.cardIndex+1 < deck.length ? this.state.cardIndex+1 : 0;
+    this.setState({flipped:false, cardIndex:nextIndex});
+    await this.persist('Cards','update',card);
+  }
+  async deleteCard(card){
+    if(!confirm('حذف هذه البطاقة؟')) return;
+    this.state.data.cards = this.state.data.cards.filter(c=>c.id!==card.id);
+    this.setState({flipped:false, cardIndex:0});
+    await this.persist('Cards','delete',{id:card.id});
+  }
+
+  toggleAddQ(){
+    const opening = !this.state.addQOpen;
+    this.setState({addQOpen:opening, editQId:null});
+    if(opening){ setTimeout(()=>{ [this.qTextRef,this.opt0Ref,this.opt1Ref,this.opt2Ref,this.opt3Ref,this.qExplainRef].forEach(r=>{ if(r.current) r.current.value=''; }); },0); }
+  }
+  editQuestion(q){
+    this.setState({addQOpen:true, editQId:q.id});
+    setTimeout(()=>{
+      if(this.qTextRef.current){
+        this.qTextRef.current.value = q.question;
+        this.opt0Ref.current.value = q.opt1;
+        this.opt1Ref.current.value = q.opt2;
+        this.opt2Ref.current.value = q.opt3;
+        this.opt3Ref.current.value = q.opt4;
+        this.qExplainRef.current.value = q.explanation || '';
+      }
+    },0);
+  }
+  async saveQuestion(){
+    const question = this.qTextRef.current.value.trim();
+    const opts = [this.opt0Ref,this.opt1Ref,this.opt2Ref,this.opt3Ref].map(r=>r.current.value.trim());
+    const explanation = this.qExplainRef.current.value.trim();
+    if(!question || opts.some(o=>!o)){ this.showToast('يجب تعبئة السؤال وكل الخيارات الأربعة'); return; }
+    if(this.state.editQId){
+      const existing = this.state.data.quiz.find(x=>x.id===this.state.editQId);
+      if(existing){
+        existing.question = question; existing.opt1 = opts[0]; existing.opt2 = opts[1]; existing.opt3 = opts[2]; existing.opt4 = opts[3]; existing.explanation = explanation;
+        [this.qTextRef,this.opt0Ref,this.opt1Ref,this.opt2Ref,this.opt3Ref,this.qExplainRef].forEach(r=>{ if(r.current) r.current.value=''; });
+        this.setState({addQOpen:false, editQId:null, quizIndex:0, quizAnswered:false});
+        await this.persist('Quiz','update',existing);
+        return;
+      }
+    }
+    const unit = this.deskCurrentUnit();
+    const rec = {id:this.uid(), subject:this.state.deskSubject, unitId:unit.id, question, opt1:opts[0], opt2:opts[1], opt3:opts[2], opt4:opts[3], correctIndex:0, explanation};
+    this.state.data.quiz.push(rec);
+    [this.qTextRef,this.opt0Ref,this.opt1Ref,this.opt2Ref,this.opt3Ref,this.qExplainRef].forEach(r=>{ if(r.current) r.current.value=''; });
+    this.setState({addQOpen:false, quizIndex:0, quizAnswered:false});
+    await this.persist('Quiz','add',rec);
+  }
+  async deleteQuestion(q){
+    if(!confirm('حذف هذا السؤال؟')) return;
+    this.state.data.quiz = this.state.data.quiz.filter(x=>x.id!==q.id);
+    this.setState({quizIndex:0, quizAnswered:false});
+    await this.persist('Quiz','delete',{id:q.id});
+  }
+  answerQuiz(q, idx){
+    if(this.state.quizAnswered) return;
+    const correct = idx === (+q.correctIndex||0);
+    this.playTone(correct?880:300, correct?0.12:0.18);
+    this.setState({quizAnswered:true, quizSessionTotal:this.state.quizSessionTotal+1, quizSessionCorrect:this.state.quizSessionCorrect + (correct?1:0), lastAnsweredIdx:idx});
+  }
+  nextQuestion(list){ this.setState({quizAnswered:false, quizIndex: this.state.quizIndex+1 < list.length ? this.state.quizIndex+1 : 0, lastAnsweredIdx:-1}); }
+
+  playTone(freq, dur){
+    try{
+      if(!this._ac) this._ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = this._ac, osc = ac.createOscillator(), gain = ac.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.start(); osc.stop(ac.currentTime+dur);
+    }catch(e){}
+  }
+
+  async fileToCompressedImage(file, maxDim=600){
+    const dataUrl = await new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=e=>resolve(e.target.result); r.onerror=reject; r.readAsDataURL(file); });
+    const img = await new Promise((resolve,reject)=>{ const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src=dataUrl; });
+    let w=img.width, h=img.height;
+    if(w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; } else if(h>=w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+    const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    for(const q of [0.6,0.45,0.3,0.18]){ const out=canvas.toDataURL('image/jpeg',q); if(out.length<45000) return out; }
+    return null;
+  }
+
+  // توزيع "مبعثر" لكنه ثابت (deterministic) لدوائر الوحدات داخل الدرس، بدون تراكب يُذكر.
+  seededRand(seed){ const x = Math.sin(seed*999)*10000; return x - Math.floor(x); }
+  buildScatterPositions(units){
+    const cols = 3, cellW = 260/cols, cellH = 118;
+    return units.map((u,i)=>{
+      const row = Math.floor(i/cols);
+      const rawCol = i%cols;
+      const col = row%2===0 ? rawCol : (cols-1-rawCol);
+      const seed = (i+1) * (u.id ? (u.id.length+7) : 13);
+      const jx = (this.seededRand(seed) - 0.5) * (cellW*0.5);
+      const jy = (this.seededRand(seed+1) - 0.5) * 36;
+      return {
+        x: col*cellW + cellW/2 + jx,
+        y: row*cellH + 66 + jy,
+      };
+    });
+  }
+  buildPathD(n){
+    if(n<2) return '';
+    const pts=[]; for(let i=0;i<n;i++){ pts.push({x: i%2===0?96:184, y: 62+i*128}); }
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for(let i=1;i<pts.length;i++){ const p0=pts[i-1], p1=pts[i]; const my=(p0.y+p1.y)/2; d += ` C ${p0.x} ${my}, ${p1.x} ${my}, ${p1.x} ${p1.y}`; }
+    return d;
+  }
+
+  // نموذج عرض بسيط لوحدة نسخة الحاسوب (منفصل عن مسار الهاتف المصوَّر)
+  deskUnitViewModel(){
+    const subjRaw = this.deskCurrentSubject();
+    if(!subjRaw) return null;
+    const subj = { ...subjRaw, color: subjInk(subjRaw.id), colorDeep: subjInkDeep(subjRaw.id), colorSoft: subjWash(subjRaw.id), glyph: GLYPH[subjRaw.id]||'◆' };
+    const unit = this.deskCurrentUnit();
+    if(!unit) return { subj, unit:null };
+    const notes = this.unitNotes(unit.id).slice().sort((a,b)=>(a.created||'').localeCompare(b.created||''));
+    const cards = this.unitCards(unit.id);
+    const quiz = this.unitQuiz(unit.id);
+    return { subj, unit, notes, cards, quiz, langTypeOptions: LANG_TYPES };
+  }
+
+  viewModel(){
+    const subjRaw = this.currentSubject();
+    const subj = {
+      ...subjRaw,
+      color: subjInk(subjRaw.id), colorDeep: subjInkDeep(subjRaw.id), colorSoft: subjWash(subjRaw.id), ring: subjRing(subjRaw.id),
+      glyph: GLYPH[subjRaw.id] || '◆',
+    };
+    const lessons = this.subjectLessons();
+    const doneCount = lessons.filter(l=>this.isLessonDone(l.id)).length;
+    const firstUndoneIdx = lessons.findIndex(l=>!this.isLessonDone(l.id));
+
+    const homeSubjectsVM = SUBJECTS.map(s=>{
+      const ls = this.state.data.lessons.filter(l=>l.subject===s.id);
+      const done = ls.filter(l=>this.isLessonDone(l.id)).length;
+      const pct = ls.length ? Math.round(100*done/ls.length) : 0;
+      return {
+        id:s.id, name:s.name, glyph: GLYPH[s.id]||'◆',
+        color: subjInk(s.id), colorSoft: subjWash(s.id),
+        countLabel: ls.length ? `${done}/${ls.length}` : 'ابدأ',
+        pct, hasLessons: ls.length>0,
+        onOpen: ()=>this.selectSubject(s.id)
+      };
+    });
+
+    const badgesVM = SUBJECTS.filter(s=>{
+      const ls = this.state.data.lessons.filter(l=>l.subject===s.id);
+      return ls.length>0 && ls.every(l=>this.isLessonDone(l.id));
+    }).map(s=>({id:s.id, name:s.name, glyph: GLYPH[s.id]||'◆', color: subjInk(s.id)}));
+
+    const lessonsVM = lessons.map((l,i)=>{
+      const done = this.isLessonDone(l.id);
+      const isCurrent = !done && i===firstUndoneIdx;
+      const size = isCurrent ? 76 : 62;
+      return {
+        id:l.id, order:l.order, title:l.title,
+        done, notDone: !done, isCurrent,
+        x: i%2===0?96:184, y: 62+i*128, size,
+        onOpen: ()=>this.openLesson(l.id), onDelete: ()=>this.deleteLesson(l.id), onEdit: ()=>this.openLessonModal(l),
+      };
+    });
+    const pathD = this.buildPathD(lessons.length);
+    const mapHeight = lessons.length ? (lessons.length-1)*128 + 150 : 0;
+
+    const lesson = this.currentLesson();
+    let unitsInLessonVM = [], lessonHeight = 0;
+    if(lesson){
+      const lUnits = this.lessonUnits(lesson.id);
+      const positions = this.buildScatterPositions(lUnits);
+      unitsInLessonVM = lUnits.map((u,i)=>{
+        const done = this.isUnitDone(u.id);
+        return {
+          id:u.id, order:u.order, title:u.title, done, notDone:!done,
+          x: positions[i].x, y: positions[i].y,
+          onOpen: ()=>this.openUnit(u.id), onDelete: ()=>this.deleteUnit(u.id), onEdit: ()=>this.openUnitModal(u),
+        };
+      });
+      const rows = Math.ceil(lUnits.length/3);
+      lessonHeight = lUnits.length ? rows*118 + 60 : 0;
+    }
+
+    const unit = this.currentUnit();
+    let notesVM=[], noteTypeChips=[], cardTypeChips=[], cardsVM_current=null, cardsMeta=null, quizVM_current=null, quizMeta=null;
+    const langTypeOptions = LANG_TYPES;
+
+    if(unit){
+      const notesRaw = this.unitNotes(unit.id).slice().sort((a,b)=>(a.created||'').localeCompare(b.created||''));
+      const notes = (subj.isLang && this.state.noteTypeFilter!=='all') ? notesRaw.filter(n=>(n.ctype||'other')===this.state.noteTypeFilter) : notesRaw;
+      notesVM = notes.map(n=>({
+        id:n.id, title:n.title, blocks: parseNoteBlocks(n), image:n.image, created:n.created,
+        typeLabel: (subj.isLang && n.ctype) ? langTypeLabel(n.ctype) : '',
+      }));
+      if(subj.isLang){
+        noteTypeChips = [{id:'all', label:`الكل (${notesRaw.length})`, active:this.state.noteTypeFilter==='all', onClick:()=>this.setNoteFilter('all')}]
+          .concat(LANG_TYPES.map(t=>({id:t.id, label:`${t.label} (${notesRaw.filter(n=>(n.ctype||'other')===t.id).length})`, active:this.state.noteTypeFilter===t.id, onClick:()=>this.setNoteFilter(t.id)})));
+      }
+
+      const allCardsRaw = this.unitCards(unit.id);
+      const allCards = (subj.isLang && this.state.cardTypeFilter!=='all') ? allCardsRaw.filter(c=>(c.ctype||'other')===this.state.cardTypeFilter) : allCardsRaw;
+      if(subj.isLang){
+        cardTypeChips = [{id:'all', label:`الكل (${allCardsRaw.length})`, active:this.state.cardTypeFilter==='all', onClick:()=>this.setCardFilter('all')}]
+          .concat(LANG_TYPES.map(t=>({id:t.id, label:`${t.label} (${allCardsRaw.filter(c=>(c.ctype||'other')===t.id).length})`, active:this.state.cardTypeFilter===t.id, onClick:()=>this.setCardFilter(t.id)})));
+      }
+      const due = allCards.filter(c=>this.isDue(c));
+      const deck = due.length ? due : allCards;
+      let idx = this.state.cardIndex; if(idx>=deck.length) idx=0;
+      const card = deck[idx];
+      cardsMeta = {hasCards: deck.length>0, noCards: deck.length===0, total:deck.length, index: idx+1, dueLabel: due.length? '(بحاجة لمراجعة)' : '(كل البطاقات)'};
+      if(card){
+        cardsVM_current = {
+          front: card.front, back: card.back, image: card.image,
+          flipped: this.state.flipped,
+          onFlip: ()=>this.flipCard(),
+          onGradeHard: (e)=>{ e.stopPropagation(); this.gradeCard(card, deck, 'hard'); },
+          onGradeMid: (e)=>{ e.stopPropagation(); this.gradeCard(card, deck, 'mid'); },
+          onGradeEasy: (e)=>{ e.stopPropagation(); this.gradeCard(card, deck, 'easy'); },
+          onDelete: ()=>this.deleteCard(card), onEdit: ()=>this.editCard(card),
+        };
+      }
+
+      const list = this.unitQuiz(unit.id);
+      let qidx = this.state.quizIndex; if(qidx>=list.length) qidx=0;
+      const q = list[qidx];
+      quizMeta = {hasQuiz: list.length>0, noQuiz: list.length===0, scoreLine: this.state.quizSessionTotal ? `الجولة الحالية: ${this.state.quizSessionCorrect}/${this.state.quizSessionTotal} صحيحة` : ''};
+      if(q){
+        if(!q._order || q._orderQid!==q.id){ q._order=[0,1,2,3].sort(()=>Math.random()-0.5); q._orderQid=q.id; }
+        const opts=[q.opt1,q.opt2,q.opt3,q.opt4];
+        const correctIdx = +q.correctIndex || 0;
+        const answered = this.state.quizAnswered;
+        const optsVM = q._order.map(i=>{
+          const isCorrect = answered && i===correctIdx;
+          const isWrong = answered && i===this.state.lastAnsweredIdx && i!==correctIdx;
+          return {
+            idx:i, text:opts[i], disabled: answered, isCorrect, isWrong,
+            onClick: ()=>this.answerQuiz(q, i),
+          };
+        });
+        quizVM_current = { question:q.question, options:optsVM, answered, explanation: q.explanation || 'تمّ تمييز الإجابة الصحيحة أعلاه.', onDelete: ()=>this.deleteQuestion(q), onEdit: ()=>this.editQuestion(q), onNext: ()=>this.nextQuestion(list) };
+      }
+    }
+
+    const isEditing = this.state.uiMode==='edit';
+
+    return {
+      subj, homeSubjectsVM, badgesVM, hasBadges: badgesVM.length>0,
+      lessons, lessonsVM, pathD, mapHeight, hasLessons: lessons.length>0, noLessons: lessons.length===0,
+      doneCount, lessonCount: lessons.length,
+      progressPct: lessons.length ? Math.round(100*doneCount/lessons.length) : 0,
+      lesson, lessonDone: lesson ? this.isLessonDone(lesson.id) : false,
+      unitsInLessonVM, lessonHeight, hasUnitsInLesson: unitsInLessonVM.length>0, noUnitsInLesson: unitsInLessonVM.length===0,
+      isEditing, isStudy: !isEditing,
+      isHomeView: this.state.view==='home',
+      isMapView: this.state.view==='map',
+      isLessonView: this.state.view==='lesson' && !!lesson,
+      isUnitView: this.state.view==='unit' && !!unit,
+      unit, unitDone: unit ? this.isUnitDone(unit.id) : false, notUnitDone: unit ? !this.isUnitDone(unit.id) : false,
+      hasSummary: !!(unit && unit.summary),
+      notesVM, noNotes: notesVM.length===0, noteTypeChips, hasNoteChips: noteTypeChips.length>0,
+      cardsVM_current, cardsMeta, hasCardTypeChips: cardTypeChips.length>0, cardTypeChips,
+      quizVM_current, quizMeta,
+      hasSeed: !!SEED_EXAMPLES[this.state.subject],
+      langTypeOptions,
+    };
+  }
+
+  renderHeader(vm){
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 20px 8px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:9,height:9,borderRadius:3,background:'var(--accent)',flex:'none'}}></div>
+          <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:800,fontSize:21,color:'var(--ink)',letterSpacing:'-.2px'}}>أطلس الدرس</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,background:'#fff',border:'1px solid var(--line)',borderRadius:20,padding:'6px 12px',boxShadow:'0 2px 6px rgba(23,33,44,.06)'}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12.5 2c1 3-2 4-2 7a3 3 0 0 0 6 0c2 2 2.5 5 2.5 6.5A7 7 0 1 1 5 15.5C5 11 8 9 9 6c.5 2 1 2.5 2 2.5-.3-2.5.5-4.5 1.5-6.5Z"/></svg>
+            <span style={{fontWeight:800,fontSize:12.5,color:'var(--accent-deep)'}}>{this.state.streak}</span>
+            <span style={{fontWeight:600,fontSize:11,color:'var(--ink-soft)'}}>يوم متتالي</span>
+          </div>
+          <button onClick={()=>this.openCfgModal()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:20,padding:'6px 12px',fontSize:11,fontWeight:600,cursor:'pointer'}}>الجدول</button>
+        </div>
+      </div>
+    );
+  }
+
+  renderHome(vm){
+    const R = 19, C = 2*Math.PI*R;
+    return (
+      <div style={{padding:'6px 20px 30px',animation:'fadeUp .35s ease'}}>
+        <div style={{textAlign:'center',color:'var(--ink-soft)',fontSize:13,marginBottom:20}}>اختر مادة لتبدأ الدرس</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {vm.homeSubjectsVM.map(s=>(
+            <button key={s.id} onClick={s.onOpen} style={{
+              display:'flex',alignItems:'center',gap:14,background:'#fff',
+              border:'1px solid var(--line)',
+              borderRadius:16, padding:'12px 16px', cursor:'pointer', textAlign:'start', width:'100%',
+              boxShadow:'0 2px 8px rgba(23,33,44,.06)'
+            }}>
+              <div style={{position:'relative',width:48,height:48,flex:'none'}}>
+                <svg width="48" height="48" viewBox="0 0 48 48" style={{position:'absolute',inset:0,transform:'rotate(-90deg)'}}>
+                  <circle cx="24" cy="24" r={R} fill="none" stroke="var(--paper-deep)" strokeWidth="3.5"></circle>
+                  {s.hasLessons && <circle cx="24" cy="24" r={R} fill="none" stroke={s.color} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-s.pct/100)}></circle>}
+                </svg>
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:s.colorSoft,borderRadius:'50%',width:34,height:34,margin:'auto',fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:15,color:s.color}}>{s.glyph}</div>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:15.5,color:'var(--ink)'}}>{s.name}</div>
+                <div className="mono" style={{fontSize:11.5,color:'var(--ink-soft)',marginTop:2}}>{s.countLabel}</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+          ))}
+        </div>
+        {vm.hasBadges && (
+          <div style={{marginTop:26}}>
+            <div className="mono" style={{fontSize:10.5,letterSpacing:.5,color:'var(--ink-faint)',marginBottom:10}}>أختامك المكتسبة</div>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              {vm.badgesVM.map(b=>(
+                <div key={b.id} title={b.name} style={{width:44,height:44,borderRadius:'50%',background:b.color,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:17,boxShadow:'0 3px 8px rgba(23,33,44,.2)'}}>{b.glyph}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  renderMap(vm){
+    const subj = vm.subj;
+    return (
+      <div style={{padding:'0 18px',animation:'fadeUp .35s ease'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
+          <button onClick={()=>this.goHome()} style={{background:'none',border:'none',color:'var(--ink-soft)',fontWeight:700,fontSize:13,cursor:'pointer',padding:0}}>→ الرئيسية</button>
+          <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:18,color:'var(--ink)'}}>{subj.name}</div>
+          <div style={{width:60}}></div>
+        </div>
+
+        {vm.noLessons && (
+          <div style={{textAlign:'center',padding:'50px 16px',border:'1.5px dashed var(--line)',borderRadius:16,color:'var(--ink-soft)'}}>
+            <div style={{fontSize:14,lineHeight:1.7}}>لا توجد دروس في {subj.name} بعد. أضِفها من نسخة الحاسوب.</div>
+          </div>
+        )}
+
+        {vm.hasLessons && (
+          <div style={{position:'relative',height:vm.mapHeight,marginTop:6}}>
+            <svg width="100%" height={vm.mapHeight} viewBox={`0 0 260 ${vm.mapHeight}`} preserveAspectRatio="none" style={{position:'absolute',inset:0}}>
+              <path d={vm.pathD} fill="none" stroke="var(--line)" strokeWidth="8" strokeLinecap="round" strokeDasharray="1 14"></path>
+            </svg>
+            {vm.lessonsVM.map(l=>{
+              const ringColor = subj.ring;
+              const nodeStyle = l.done ? {
+                background:subj.color, boxShadow:'0 5px 12px rgba(23,33,44,.22)', color:'#fff'
+              } : l.isCurrent ? {
+                background:subj.color, boxShadow:'0 6px 16px rgba(23,33,44,.26)', color:'#fff',
+                '--ring-color': ringColor.replace(')', ' / .45)'),
+                '--base-shadow':'0 6px 16px rgba(23,33,44,.26)',
+                animation:'pulseRing 1.9s ease-in-out infinite'
+              } : {
+                background:'#fff', border:'1.5px solid var(--line)', color:'var(--ink-faint)', boxShadow:'0 2px 6px rgba(23,33,44,.06)'
+              };
+              return (
+                <div key={l.id} style={{position:'absolute',left:l.x,top:l.y,transform:'translate(-50%,-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:6,width:114}}>
+                  <button onClick={l.onOpen} style={{width:l.size,height:l.size,borderRadius:'50%',border:'none',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:18,cursor:'pointer',flex:'none',...nodeStyle}}>
+                    {l.done ? <span style={{fontSize:18}}>{subj.glyph}</span> : l.order}
+                  </button>
+                  <div style={{fontSize:11.5,fontWeight:700,color:'var(--ink)',textAlign:'center',lineHeight:1.3}}>{l.title}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  renderLesson(vm){
+    const subj = vm.subj, lesson = vm.lesson;
+    return (
+      <div style={{padding:'0 18px',animation:'fadeUp .35s ease'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <button onClick={()=>this.backToMap()} style={{background:'none',border:'none',color:'var(--ink-soft)',fontWeight:700,fontSize:13,cursor:'pointer',padding:0}}>→ دروس {subj.name}</button>
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:19,marginBottom:4,color:'var(--ink)'}}>{lesson.title}</div>
+          {lesson.description && <div style={{color:'var(--ink-soft)',fontSize:13.5,lineHeight:1.6}}>{lesson.description}</div>}
+        </div>
+
+        {vm.noUnitsInLesson && (
+          <div style={{textAlign:'center',padding:'50px 16px',border:'1.5px dashed var(--line)',borderRadius:16,color:'var(--ink-soft)'}}>
+            <div style={{fontSize:14,lineHeight:1.7}}>لا توجد وحدات في هذا الدرس بعد.</div>
+          </div>
+        )}
+
+        {vm.hasUnitsInLesson && (
+          <div style={{position:'relative',height:vm.lessonHeight,marginTop:6}}>
+            {vm.unitsInLessonVM.map(u=>{
+              const nodeStyle = u.done ? {
+                background:subj.color, boxShadow:'0 5px 12px rgba(23,33,44,.22)', color:'#fff'
+              } : {
+                background:'#fff', border:'1.5px solid var(--line)', color:'var(--ink)', boxShadow:'0 2px 6px rgba(23,33,44,.06)'
+              };
+              return (
+                <div key={u.id} style={{position:'absolute',left:u.x,top:u.y,transform:'translate(-50%,-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:6,width:96}}>
+                  <button onClick={u.onOpen} style={{width:64,height:64,borderRadius:'50%',border:'none',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:17,cursor:'pointer',flex:'none',...nodeStyle}}>
+                    {u.done ? <span style={{fontSize:17}}>{subj.glyph}</span> : u.order}
+                  </button>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--ink)',textAlign:'center',lineHeight:1.3}}>{u.title}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  renderUnit(vm){
+    const subj = vm.subj, unit = vm.unit;
+    const tabs = [
+      {id:'notes', label:'الدروس'},
+      {id:'cards', label:'البطاقات'},
+      {id:'quiz', label:'الاختبار'},
+    ];
+    return (
+      <div style={{padding:'0 18px',animation:'fadeUp .35s ease'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <button onClick={()=>this.backToLesson()} style={{background:'none',border:'none',color:'var(--ink-soft)',fontWeight:700,fontSize:13,cursor:'pointer',padding:0}}>→ وحدات الدرس</button>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:19,marginBottom:4,color:'var(--ink)'}}>{unit.title}</div>
+          {unit.description && <div style={{color:'var(--ink-soft)',fontSize:13.5,lineHeight:1.6}}>{unit.description}</div>}
+        </div>
+
+        {vm.hasSummary && (
+          <div style={{background:subj.colorSoft,borderRadius:10,padding:'13px 15px',marginBottom:16,borderInlineStart:`3px solid ${subj.color}`}}>
+            <div className="mono" style={{fontSize:9.5,letterSpacing:.5,color:subj.color,marginBottom:5}}>ملخّص سريع</div>
+            <div style={{fontSize:13.5,lineHeight:1.7,color:'var(--ink)'}}>{unit.summary}</div>
+          </div>
+        )}
+
+        <div style={{display:'flex',borderBottom:'1.5px solid var(--line)',marginBottom:16}}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>this.setDetailTab(t.id)} style={{
+              flex:1,border:'none',background:'none',padding:'9px 4px',fontWeight:700,fontSize:12.5,cursor:'pointer',
+              color: this.state.detailTab===t.id ? subj.color : 'var(--ink-soft)',
+              borderBottom: this.state.detailTab===t.id ? `2.5px solid ${subj.color}` : '2.5px solid transparent',
+              marginBottom:-2
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {this.state.detailTab==='notes' && this.renderNotesTab(vm, subj, unit)}
+        {this.state.detailTab==='cards' && this.renderCardsTab(vm, subj, unit)}
+        {this.state.detailTab==='quiz' && this.renderQuizTab(vm, subj, unit)}
+
+        <div style={{display:'flex',justifyContent:'center',marginTop:24,paddingTop:18,borderTop:'1px solid var(--line)'}}>
+          {vm.unitDone && <button onClick={()=>this.toggleUnitComplete(unit.id,false)} style={{background:'none',border:'1.5px solid var(--line)',color:'var(--ink-soft)',borderRadius:999,padding:'12px 22px',fontWeight:700,fontSize:13.5,cursor:'pointer'}}>↺ إلغاء إنجاز الوحدة</button>}
+          {vm.notUnitDone && <button onClick={()=>this.toggleUnitComplete(unit.id,true)} style={{background:'var(--success)',color:'#fff',border:'none',borderRadius:999,padding:'12px 26px',fontWeight:700,fontSize:13.5,cursor:'pointer',boxShadow:'0 4px 12px rgba(15,169,143,.35)'}}>✓ أَنهِ هذه الوحدة</button>}
+        </div>
+
+        {this.state.celebrate && (
+          <React.Fragment>
+            <div style={{position:'fixed',top:'50%',left:'50%',width:120,height:120,borderRadius:'50%',border:'3px solid var(--success)',animation:'pingOut .9s ease-out forwards',pointerEvents:'none',zIndex:79}}></div>
+            <div style={{position:'fixed',top:'50%',left:'50%',width:96,height:96,borderRadius:'50%',background:'var(--success)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:700,fontSize:38,boxShadow:'0 8px 24px rgba(15,169,143,.4)',animation:'popIn .9s cubic-bezier(.2,.7,.3,1) forwards',pointerEvents:'none',zIndex:80}}>
+              {this.state.celebrateGlyph}
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+    );
+  }
+
+  renderNotesTab(vm, subj, unit){
+    return (
+      <div>
+        {vm.hasNoteChips && (
+          <div className="scrollx" style={{display:'flex',gap:6,overflowX:'auto',marginBottom:14}}>
+            {vm.noteTypeChips.map(chip=>(
+              <button key={chip.id} onClick={chip.onClick} style={{
+                flex:'none',border:`1.5px solid ${chip.active?subj.color:'var(--line)'}`,
+                background:chip.active?subj.color:'var(--paper-2)', color:chip.active?'#fff':'var(--ink-soft)',
+                borderRadius:14,padding:'6px 13px',fontSize:12,fontWeight:600,cursor:'pointer'
+              }}>{chip.label}</button>
+            ))}
+          </div>
+        )}
+        {vm.noNotes && <div style={{textAlign:'center',padding:'36px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:14,fontSize:13.5}}>لا يوجد محتوى لهذه الوحدة بعد. أضِف مواضيع من نسخة الحاسوب.</div>}
+        {vm.notesVM.map(n=>(
+          <div key={n.id} style={{background:'var(--paper-2)',border:'1px solid var(--line)',borderRadius:14,padding:'14px 16px',marginBottom:10,boxShadow:'0 2px 8px rgba(23,33,44,.05)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8,marginBottom:8}}>
+              <span style={{fontWeight:700,fontSize:14.5,fontFamily:"'IBM Plex Sans Arabic',sans-serif"}}>{n.title}</span>
+              {n.typeLabel && <span className="mono" style={{fontSize:10.5,color:subj.color,background:subj.colorSoft,borderRadius:10,padding:'2px 9px',flex:'none'}}>{n.typeLabel}</span>}
+            </div>
+            {n.image && <img src={n.image} style={{maxWidth:'100%',borderRadius:8,marginBottom:10,display:'block'}} />}
+            {this.renderBlocksDisplay(n.blocks, subj)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // يعرض مصفوفة الكتل بشكل مقروء وواضح داخل الدرس (نسخة الدراسة/الهاتف)
+  renderBlocksDisplay(blocks, subj){
+    if(!blocks || blocks.length===0) return null;
+    return blocks.map(b=>{
+      if(b.type==='heading') return (
+        <div key={b.id} style={{fontWeight:800,fontSize:16,color:'var(--ink)',margin:'14px 0 6px'}}>{b.text}</div>
+      );
+      if(b.type==='paragraph') return (
+        <div key={b.id} style={{fontSize:14,lineHeight:1.8,color:'var(--ink-soft)',marginBottom:10,whiteSpace:'pre-wrap'}}>{b.text}</div>
+      );
+      if(b.type==='bullets') return (
+        <div key={b.id} style={{marginBottom:10}}>
+          {(b.items||[]).filter(Boolean).map((it,i)=>(
+            <div key={i} style={{display:'flex',gap:8,marginBottom:6}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:subj.color,marginTop:8,flex:'none'}}></span>
+              <span style={{fontSize:14,lineHeight:1.7,color:'var(--ink-soft)'}}>{it}</span>
+            </div>
+          ))}
+        </div>
+      );
+      if(b.type==='rule') return (
+        <div key={b.id} style={{background:subj.colorSoft,borderRadius:10,padding:'12px 14px',marginBottom:12,borderInlineStart:`3px solid ${subj.color}`}}>
+          <div className="mono" style={{fontSize:9.5,letterSpacing:.5,color:subj.color,marginBottom:5}}>قاعدة</div>
+          <div style={{fontSize:14,lineHeight:1.7,color:'var(--ink)'}}>{b.text}</div>
+        </div>
+      );
+      if(b.type==='example') return (
+        <div key={b.id} style={{background:'#fff',border:'1px solid var(--line)',borderInlineStart:`3px solid ${subj.color}`,borderRadius:10,padding:'12px 14px',marginBottom:12}}>
+          <div className="mono" style={{fontSize:9.5,letterSpacing:.5,color:'var(--ink-faint)',marginBottom:6}}>مثال</div>
+          {b.term && <div style={{fontWeight:700,fontSize:15,color:'var(--ink)',marginBottom:4,fontFamily:subj.faceFont,direction:subj.dir}}>{b.term}</div>}
+          <div style={{fontSize:13.5,lineHeight:1.7,color:'var(--ink-soft)'}}>{b.text}</div>
+        </div>
+      );
+      if(b.type==='vocab') return (
+        <div key={b.id} style={{background:'#fff',border:'1px solid var(--line)',borderRadius:10,padding:'2px 14px',marginBottom:12}}>
+          {(b.items||[]).filter(it=>it.word||it.meaning).map((it,i)=>(
+            <div key={i} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'9px 0',borderTop: i>0?'1px solid var(--line)':'none'}}>
+              <span style={{fontWeight:700,fontSize:14,color:subj.color,fontFamily:subj.faceFont,direction:subj.dir}}>{it.word}</span>
+              <span style={{fontSize:13,color:'var(--ink-soft)',textAlign:'end'}}>{it.meaning}</span>
+            </div>
+          ))}
+        </div>
+      );
+      if(b.type==='important') return (
+        <div key={b.id} style={{background:'var(--warn-soft)',border:'1.5px solid var(--warn)',borderRadius:10,padding:'12px 14px',marginBottom:12,display:'flex',gap:10,alignItems:'flex-start'}}>
+          <span style={{fontSize:15,color:'var(--warn-deep)',flex:'none',lineHeight:1}}>❗</span>
+          <div style={{fontSize:13.5,lineHeight:1.7,color:'var(--ink)',fontWeight:600}}>{b.text}</div>
+        </div>
+      );
+      return null;
+    });
+  }
+
+  renderCardsTab(vm, subj, unit){
+    const c = vm.cardsVM_current;
+    return (
+      <div>
+        {vm.hasCardTypeChips && (
+          <div className="scrollx" style={{display:'flex',gap:6,overflowX:'auto',marginBottom:14}}>
+            {vm.cardTypeChips.map(chip=>(
+              <button key={chip.id} onClick={chip.onClick} style={{
+                flex:'none',border:`1.5px solid ${chip.active?subj.color:'var(--line)'}`,
+                background:chip.active?subj.color:'var(--paper-2)', color:chip.active?'#fff':'var(--ink-soft)',
+                borderRadius:14,padding:'6px 13px',fontSize:12,fontWeight:600,cursor:'pointer'
+              }}>{chip.label}</button>
+            ))}
+          </div>
+        )}
+        {vm.cardsMeta.noCards && <div style={{textAlign:'center',padding:'36px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:14,fontSize:13.5}}>لا توجد بطاقات لهذه الوحدة بعد. أضِفها من نسخة الحاسوب.</div>}
+        {vm.cardsMeta.hasCards && (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
+            <div className="mono" style={{fontSize:11,color:'var(--ink-soft)'}}>بطاقة {vm.cardsMeta.index} من {vm.cardsMeta.total} {vm.cardsMeta.dueLabel}</div>
+            <div onClick={c.onFlip} style={{width:'100%',maxWidth:320,height:214,cursor:'pointer',perspective:1000}}>
+              <div style={{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .5s cubic-bezier(.4,.2,.2,1)',transform:c.flipped?'rotateY(180deg)':'rotateY(0deg)'}}>
+                <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'#fff',border:'1px solid var(--line)',borderTop:`4px solid ${subj.color}`,borderRadius:16,boxShadow:'0 6px 18px rgba(23,33,44,.1)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20,textAlign:'center'}}>
+                  <span className="mono" style={{position:'absolute',top:14,insetInlineStart:16,fontSize:9.5,letterSpacing:.5,color:'var(--ink-faint)'}}>سؤال</span>
+                  {c.image && <img src={c.image} style={{maxWidth:'100%',maxHeight:100,borderRadius:8,marginBottom:10}} />}
+                  <div style={{fontFamily:vm.subj.faceFont,fontWeight:700,fontSize:21,color:'var(--ink)',direction:vm.subj.dir}}>{c.front}</div>
+                </div>
+                <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:subj.colorSoft,border:`1px solid ${subj.color}`,borderRadius:16,boxShadow:'0 6px 18px rgba(23,33,44,.1)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20,textAlign:'center'}}>
+                  <span className="mono" style={{position:'absolute',top:14,insetInlineStart:16,fontSize:9.5,letterSpacing:.5,color:'var(--ink-soft)'}}>الجواب</span>
+                  <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:600,fontSize:16,color:'var(--ink)',lineHeight:1.6}}>{c.back}</div>
+                </div>
+              </div>
+            </div>
+            <div className="mono" style={{fontSize:11,color:'var(--ink-faint)'}}>اضغط على البطاقة للتقليب</div>
+            {c.flipped && (
+              <div style={{display:'flex',gap:8,width:'100%',maxWidth:320}}>
+                <button onClick={c.onGradeHard} style={{flex:1,border:'1.5px solid var(--danger)',background:'var(--danger-soft)',color:'var(--danger)',borderRadius:10,padding:'11px 6px',fontWeight:700,fontSize:13,cursor:'pointer'}}>صعب</button>
+                <button onClick={c.onGradeMid} style={{flex:1,border:'1.5px solid var(--line)',background:'#fff',color:'var(--ink-soft)',borderRadius:10,padding:'11px 6px',fontWeight:700,fontSize:13,cursor:'pointer'}}>متوسط</button>
+                <button onClick={c.onGradeEasy} style={{flex:1,border:'1.5px solid var(--success)',background:'var(--success-soft)',color:'var(--success)',borderRadius:10,padding:'11px 6px',fontWeight:700,fontSize:13,cursor:'pointer'}}>سهل</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  renderQuizTab(vm, subj, unit){
+    const q = vm.quizVM_current;
+    return (
+      <div>
+        {vm.quizMeta.scoreLine && <div className="mono" style={{fontSize:11,color:'var(--ink-soft)',marginBottom:12}}>{vm.quizMeta.scoreLine}</div>}
+        {vm.quizMeta.noQuiz && <div style={{textAlign:'center',padding:'36px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:14,fontSize:13.5}}>لا توجد أسئلة لهذه الوحدة بعد.</div>}
+        {vm.quizMeta.hasQuiz && (
+          <div>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:14,lineHeight:1.55,direction:vm.subj.dir,fontFamily:vm.subj.faceFont}}>{q.question}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
+              {q.options.map(opt=>(
+                <button key={opt.idx} onClick={opt.onClick} disabled={opt.disabled} style={{
+                  textAlign:'start',display:'flex',alignItems:'center',gap:10,
+                  background: opt.isCorrect ? 'var(--success-soft)' : (opt.isWrong ? 'var(--danger-soft)' : '#fff'),
+                  border: opt.isCorrect ? '2px solid var(--success)' : (opt.isWrong ? '2px solid var(--danger)' : '1.5px solid var(--line)'),
+                  color: opt.isCorrect ? 'var(--success)' : (opt.isWrong ? 'var(--danger)' : 'var(--ink)'),
+                  borderRadius:10, padding:'12px 15px', fontSize:14, fontWeight:600, cursor:'pointer'
+                }}>
+                  <span style={{width:16,height:16,borderRadius:'50%',border:'1.5px solid currentColor',flex:'none',display:'inline-block'}}></span>
+                  {opt.text}
+                </button>
+              ))}
+            </div>
+            {q.answered && (
+              <React.Fragment>
+                <div style={{fontSize:13,color:'var(--ink-soft)',background:'var(--paper-deep)',borderRadius:10,padding:'12px 14px',marginBottom:14,borderInlineStart:`3px solid ${subj.color}`}}>{q.explanation}</div>
+                <button onClick={q.onNext} style={{background:subj.color,color:'#fff',border:'none',borderRadius:10,padding:'11px 18px',fontWeight:700,fontSize:13.5,cursor:'pointer',width:'100%'}}>السؤال التالي ←</button>
+              </React.Fragment>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  saveUnitInlineField(unit, field, value){
+    unit[field] = value;
+    this.touch();
+    this.persist('Units','update',unit);
+  }
+
+  // ---- نسخة الحاسوب: لوحة التحكم ----
+  renderDesktopSidebar(){
+    const activeColor = subjInk(this.state.deskSubject);
+    return (
+      <div style={{width:300,flex:'none',borderInlineEnd:'1px solid var(--line)',background:'#fff',height:'100vh',overflowY:'auto',padding:'20px 16px'}}>
+        <div style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:800,fontSize:18,marginBottom:18,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:9,height:9,borderRadius:3,background:'var(--accent)',flex:'none'}}></div> أطلس الدرس
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+          {SUBJECTS.map(s=>{
+            const active = this.state.deskSubject===s.id;
+            const color = subjInk(s.id);
+            return (
+              <button key={s.id} onClick={()=>this.deskSelectSubject(s.id)} style={{
+                border:`1.5px solid ${active?color:'var(--line)'}`, background: active?color:'#fff', color: active?'#fff':'var(--ink-soft)',
+                borderRadius:8, padding:'6px 10px', fontSize:12, fontWeight:700, cursor:'pointer'
+              }}>{s.name}</button>
+            );
+          })}
+        </div>
+        <button onClick={()=>this.openLessonModal(null, this.state.deskSubject)} style={{width:'100%',background:'none',border:'1.5px dashed var(--line)',color:'var(--ink-soft)',borderRadius:8,padding:'8px 10px',fontSize:12.5,fontWeight:700,cursor:'pointer',marginBottom:14}}>+ درس جديد</button>
+        <div>
+          {this.deskSubjectLessons().map(l=>{
+            const expanded = this.state.deskLessonId===l.id;
+            const units = this.lessonUnits(l.id);
+            return (
+              <div key={l.id} style={{marginBottom:6}}>
+                <div style={{display:'flex',alignItems:'center',gap:2}}>
+                  <button onClick={()=>this.deskSelectLesson(l.id)} style={{flex:1,textAlign:'start',background: expanded?'var(--paper-deep)':'none',border:'none',borderRadius:8,padding:'8px 10px',fontSize:13,fontWeight:700,color:'var(--ink)',cursor:'pointer'}}>{expanded?'▾':'‹'} {l.title}</button>
+                  <button onClick={()=>this.openLessonModal(l, this.state.deskSubject)} title="تعديل" style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:'pointer',fontSize:12,padding:'2px 5px'}}>✎</button>
+                  <button onClick={()=>this.deleteLesson(l.id)} title="حذف" style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:'pointer',fontSize:13,padding:'2px 5px'}}>×</button>
+                </div>
+                {expanded && (
+                  <div style={{paddingInlineStart:14,marginTop:4,display:'flex',flexDirection:'column',gap:2}}>
+                    {units.map(u=>{
+                      const uActive = this.state.deskUnitId===u.id;
+                      return (
+                        <div key={u.id} style={{display:'flex',alignItems:'center',gap:2}}>
+                          <button onClick={()=>this.deskSelectUnit(u.id)} style={{flex:1,textAlign:'start',background: uActive?subjWash(this.state.deskSubject):'none',color: uActive?activeColor:'var(--ink-soft)',border:'none',borderRadius:6,padding:'6px 10px',fontSize:12.5,fontWeight:600,cursor:'pointer'}}>{u.title}</button>
+                          <button onClick={()=>this.openUnitModal(u, l.id)} style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:'pointer',fontSize:11,padding:'2px 5px'}}>✎</button>
+                          <button onClick={()=>this.deleteUnit(u.id)} style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:'pointer',fontSize:12,padding:'2px 5px'}}>×</button>
+                        </div>
+                      );
+                    })}
+                    <button onClick={()=>this.openUnitModal(null, l.id)} style={{textAlign:'start',background:'none',border:'1px dashed var(--line)',color:'var(--ink-soft)',borderRadius:6,padding:'6px 10px',fontSize:12,cursor:'pointer',marginTop:4}}>+ وحدة جديدة</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {this.deskSubjectLessons().length===0 && <div style={{textAlign:'center',color:'var(--ink-faint)',fontSize:12.5,padding:'20px 0'}}>لا توجد دروس بعد</div>}
+        </div>
+      </div>
+    );
+  }
+
+  renderDesktopTopicsTab(vm2){
+    const {subj, unit, notes} = vm2;
+    if(this.state.noteEditorOpen) return this.renderNoteEditorPanel(subj);
+    return (
+      <div>
+        <button onClick={()=>this.openNoteEditor(null, unit.id, subj.id)} style={{background:subj.color,color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:16}}>+ إضافة موضوع</button>
+        {notes.length===0 && <div style={{textAlign:'center',padding:'30px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:12,fontSize:13}}>لا توجد مواضيع بعد.</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {notes.map(n=>{
+            const blocks = parseNoteBlocks(n);
+            return (
+              <div key={n.id} style={{background:'#fff',border:'1px solid var(--line)',borderRadius:12,padding:'12px 16px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14.5,color:'var(--ink)'}}>{n.title}</div>
+                    <div className="mono" style={{fontSize:11,color:'var(--ink-faint)',marginTop:3}}>{blocks.length} كتلة محتوى{n.ctype && n.ctype!=='other' ? ' · '+langTypeLabel(n.ctype) : ''}</div>
+                  </div>
+                  <div style={{display:'flex',gap:6,flex:'none'}}>
+                    <button onClick={()=>this.openNoteEditor(n, unit.id, subj.id)} style={{background:'none',border:`1px solid ${subj.color}`,color:subj.color,borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>تعديل</button>
+                    <button onClick={()=>this.deleteNote(n.id)} style={{background:'none',border:'1px solid var(--danger)',color:'var(--danger)',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>حذف</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  renderNoteEditorPanel(subj){
+    const blocks = this.state.noteEditorBlocks;
+    return (
+      <div style={{background:'#fff',border:'1px solid var(--line)',borderRadius:14,padding:18}}>
+        <div style={{display:'flex',gap:10,marginBottom:14}}>
+          <input value={this.state.noteEditorTitle} onChange={e=>this.setNoteEditorTitle(e.target.value)} placeholder="عنوان الموضوع" style={{flex:1,background:'#fff',border:'1px solid var(--line)',borderRadius:8,padding:'10px 12px',fontSize:15,fontWeight:700}} />
+          {subj.isLang && (
+            <select value={this.state.noteEditorCtype} onChange={e=>this.setNoteEditorCtype(e.target.value)} style={{background:'#fff',border:'1px solid var(--line)',borderRadius:8,padding:'10px 12px',fontSize:13}}>
+              {LANG_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          )}
+        </div>
+        <div style={{marginBottom:16}}>
+          <input type="file" accept="image/*" onChange={e=>this.handleNoteEditorImage(e)} style={{fontSize:12,color:'var(--ink-soft)'}} />
+          {this.state.noteEditorImage && <img src={this.state.noteEditorImage} style={{maxWidth:160,borderRadius:8,display:'block',marginTop:8}} />}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+          {blocks.map((b,idx)=>this.renderEditorBlock(b, idx, subj))}
+          {blocks.length===0 && <div style={{textAlign:'center',padding:'20px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:10,fontSize:13}}>ابدأ بإضافة كتلة محتوى من الأزرار تحت</div>}
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:18,paddingTop:14,borderTop:'1px solid var(--line)'}}>
+          {BLOCK_TYPES.map(t=>(
+            <button key={t.id} onClick={()=>this.addEditorBlock(t.id)} style={{background:'var(--paper-deep)',border:'1px solid var(--line)',color:'var(--ink)',borderRadius:8,padding:'7px 12px',fontSize:12.5,fontWeight:600,cursor:'pointer'}}>+ {t.label}</button>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>this.saveNoteEditor()} style={{background:subj.color,color:'#fff',border:'none',borderRadius:8,padding:'10px 20px',fontWeight:700,fontSize:13.5,cursor:'pointer'}}>حفظ الموضوع</button>
+          <button onClick={()=>this.closeNoteEditor()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:8,padding:'10px 20px',fontWeight:700,fontSize:13.5,cursor:'pointer'}}>إلغاء</button>
+        </div>
+      </div>
+    );
+  }
+
+  renderEditorBlock(b, idx, subj){
+    const total = this.state.noteEditorBlocks.length;
+    const inputStyle = {width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'8px 10px',fontSize:13.5};
+    let body = null;
+    if(b.type==='heading' || b.type==='paragraph' || b.type==='rule' || b.type==='important'){
+      const ph = b.type==='heading' ? 'نص العنوان الفرعي' : b.type==='rule' ? 'نص القاعدة' : b.type==='important' ? 'المعلومة المهمة' : 'نص الفقرة';
+      body = <textarea value={b.text} onChange={e=>this.updateEditorBlock(idx,{text:e.target.value})} placeholder={ph} style={{...inputStyle, minHeight: b.type==='heading'?40:70, resize:'vertical'}}></textarea>;
+    } else if(b.type==='example'){
+      body = (
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <input value={b.term} onChange={e=>this.updateEditorBlock(idx,{term:e.target.value})} placeholder="الجملة / المصطلح" style={inputStyle} />
+          <textarea value={b.text} onChange={e=>this.updateEditorBlock(idx,{text:e.target.value})} placeholder="الشرح" style={{...inputStyle,minHeight:56,resize:'vertical'}}></textarea>
+        </div>
+      );
+    } else if(b.type==='bullets'){
+      body = (
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {b.items.map((it,i)=>(
+            <div key={i} style={{display:'flex',gap:6}}>
+              <input value={it} onChange={e=>this.updateBulletItem(idx,i,e.target.value)} placeholder={`نقطة ${i+1}`} style={{...inputStyle,flex:1}} />
+              {b.items.length>1 && <button onClick={()=>this.removeBulletItem(idx,i)} style={{background:'none',border:'none',color:'var(--danger)',cursor:'pointer',fontSize:16,padding:'0 6px'}}>×</button>}
+            </div>
+          ))}
+          <button onClick={()=>this.addBulletItem(idx)} style={{alignSelf:'flex-start',background:'none',border:'1px dashed var(--line)',color:'var(--ink-soft)',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer'}}>+ نقطة</button>
+        </div>
+      );
+    } else if(b.type==='vocab'){
+      body = (
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {b.items.map((it,i)=>(
+            <div key={i} style={{display:'flex',gap:6}}>
+              <input value={it.word} onChange={e=>this.updateVocabItem(idx,i,'word',e.target.value)} placeholder="الكلمة" style={{...inputStyle,flex:1}} />
+              <input value={it.meaning} onChange={e=>this.updateVocabItem(idx,i,'meaning',e.target.value)} placeholder="المعنى" style={{...inputStyle,flex:1}} />
+              {b.items.length>1 && <button onClick={()=>this.removeVocabItem(idx,i)} style={{background:'none',border:'none',color:'var(--danger)',cursor:'pointer',fontSize:16,padding:'0 6px'}}>×</button>}
+            </div>
+          ))}
+          <button onClick={()=>this.addVocabItem(idx)} style={{alignSelf:'flex-start',background:'none',border:'1px dashed var(--line)',color:'var(--ink-soft)',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:'pointer'}}>+ كلمة</button>
+        </div>
+      );
+    }
+    return (
+      <div key={b.id} style={{background:'var(--paper)',border:'1px solid var(--line)',borderRadius:10,padding:12}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+          <span className="mono" style={{fontSize:10.5,letterSpacing:.5,color:subj.color,background:subj.colorSoft,borderRadius:6,padding:'2px 8px'}}>{blockLabel(b.type)}</span>
+          <div style={{display:'flex',gap:4}}>
+            <button onClick={()=>this.moveEditorBlock(idx,-1)} disabled={idx===0} style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:idx===0?'default':'pointer',fontSize:13,padding:'2px 6px'}}>↑</button>
+            <button onClick={()=>this.moveEditorBlock(idx,1)} disabled={idx===total-1} style={{background:'none',border:'none',color:'var(--ink-faint)',cursor:idx===total-1?'default':'pointer',fontSize:13,padding:'2px 6px'}}>↓</button>
+            <button onClick={()=>this.removeEditorBlock(idx)} style={{background:'none',border:'none',color:'var(--danger)',cursor:'pointer',fontSize:12,fontWeight:700,padding:'2px 6px'}}>حذف</button>
+          </div>
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  renderDesktopCardsTab(vm2){
+    const {subj, cards} = vm2;
+    return (
+      <div>
+        <button onClick={()=>this.toggleAddCard()} style={{background:subj.color,color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:16}}>+ بطاقة جديدة</button>
+        {this.state.addCardOpen && (
+          <div style={{background:'#fff',border:'1px solid var(--line)',borderRadius:12,padding:16,marginBottom:16,maxWidth:460}}>
+            {this.state.editCardId && <div className="mono" style={{fontSize:10.5,color:subj.color,marginBottom:8}}>تعديل البطاقة</div>}
+            <textarea ref={this.cardFrontRef} placeholder="الوجه الأمامي (سؤال / مصطلح)" style={{width:'100%',minHeight:60,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:14,marginBottom:8,resize:'vertical'}}></textarea>
+            <textarea ref={this.cardBackRef} placeholder="الوجه الخلفي (الجواب / الشرح)" style={{width:'100%',minHeight:60,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:14,marginBottom:8,resize:'vertical'}}></textarea>
+            {subj.isLang && (
+              <select ref={this.cardTypeRef} style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:8}}>
+                {LANG_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            )}
+            <input ref={this.cardImageRef} type="file" accept="image/*" onChange={(e)=>this.handleCardImage(e)} style={{width:'100%',fontSize:12,color:'var(--ink-soft)',marginBottom:8}} />
+            {this.state.cardImageData && <img src={this.state.cardImageData} style={{maxWidth:120,borderRadius:8,display:'block',marginBottom:8}} />}
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>this.saveCard()} style={{background:subj.color,color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>حفظ</button>
+              <button onClick={()=>this.toggleAddCard()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>إلغاء</button>
+            </div>
+          </div>
+        )}
+        {cards.length===0 && <div style={{textAlign:'center',padding:'30px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:12,fontSize:13}}>لا توجد بطاقات بعد.</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {cards.map(c=>(
+            <div key={c.id} style={{background:'#fff',border:'1px solid var(--line)',borderRadius:12,padding:'12px 16px',display:'flex',justifyContent:'space-between',gap:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:14,color:'var(--ink)'}}>{c.front}</div>
+                <div style={{fontSize:13,color:'var(--ink-soft)',marginTop:4}}>{c.back}</div>
+              </div>
+              <div style={{display:'flex',gap:6,flex:'none'}}>
+                <button onClick={()=>this.editCard(c)} style={{background:'none',border:`1px solid ${subj.color}`,color:subj.color,borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>تعديل</button>
+                <button onClick={()=>this.deleteCard(c)} style={{background:'none',border:'1px solid var(--danger)',color:'var(--danger)',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>حذف</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  renderDesktopQuizTab(vm2){
+    const {subj, quiz} = vm2;
+    return (
+      <div>
+        <button onClick={()=>this.toggleAddQ()} style={{background:subj.color,color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:16}}>+ سؤال جديد</button>
+        {this.state.addQOpen && (
+          <div style={{background:'#fff',border:'1px solid var(--line)',borderRadius:12,padding:16,marginBottom:16,maxWidth:460}}>
+            {this.state.editQId && <div className="mono" style={{fontSize:10.5,color:subj.color,marginBottom:8}}>تعديل السؤال</div>}
+            <textarea ref={this.qTextRef} placeholder="نص السؤال" style={{width:'100%',minHeight:56,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:14,marginBottom:8,resize:'vertical'}}></textarea>
+            <input ref={this.opt0Ref} placeholder="الخيار 1 (الصحيح)" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:6}} />
+            <input ref={this.opt1Ref} placeholder="الخيار 2" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:6}} />
+            <input ref={this.opt2Ref} placeholder="الخيار 3" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:6}} />
+            <input ref={this.opt3Ref} placeholder="الخيار 4" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:8}} />
+            <textarea ref={this.qExplainRef} placeholder="شرح (اختياري)" style={{width:'100%',minHeight:50,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'9px 11px',fontSize:13.5,marginBottom:8,resize:'vertical'}}></textarea>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>this.saveQuestion()} style={{background:subj.color,color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>حفظ</button>
+              <button onClick={()=>this.toggleAddQ()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>إلغاء</button>
+            </div>
+          </div>
+        )}
+        {quiz.length===0 && <div style={{textAlign:'center',padding:'30px 14px',color:'var(--ink-faint)',border:'1.5px dashed var(--line)',borderRadius:12,fontSize:13}}>لا توجد أسئلة بعد.</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {quiz.map(q=>(
+            <div key={q.id} style={{background:'#fff',border:'1px solid var(--line)',borderRadius:12,padding:'12px 16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:10}}>
+                <div style={{fontWeight:700,fontSize:14,color:'var(--ink)',flex:1}}>{q.question}</div>
+                <div style={{display:'flex',gap:6,flex:'none'}}>
+                  <button onClick={()=>this.editQuestion(q)} style={{background:'none',border:`1px solid ${subj.color}`,color:subj.color,borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>تعديل</button>
+                  <button onClick={()=>this.deleteQuestion(q)} style={{background:'none',border:'1px solid var(--danger)',color:'var(--danger)',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>حذف</button>
+                </div>
+              </div>
+              <div style={{fontSize:12.5,color:'var(--ink-soft)',marginTop:6}}>الإجابة الصحيحة: {q.opt1}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  renderDesktopUnitEditor(vm2){
+    const {subj, unit} = vm2;
+    const tabs = [{id:'notes', label:'المواضيع'}, {id:'cards', label:'البطاقات'}, {id:'quiz', label:'الاختبار'}];
+    return (
+      <div key={unit.id} style={{padding:'28px 36px',maxWidth:760}}>
+        <input defaultValue={unit.title} onBlur={e=>this.saveUnitInlineField(unit,'title',e.target.value)} style={{fontFamily:"'IBM Plex Sans Arabic',sans-serif",fontWeight:800,fontSize:22,border:'none',outline:'none',background:'none',width:'100%',marginBottom:6,color:'var(--ink)',padding:0}} />
+        <textarea defaultValue={unit.description||''} onBlur={e=>this.saveUnitInlineField(unit,'description',e.target.value)} placeholder="وصف قصير للوحدة" style={{width:'100%',border:'none',outline:'none',background:'none',fontSize:14,color:'var(--ink-soft)',resize:'vertical',marginBottom:16,minHeight:26,padding:0}}></textarea>
+        <div style={{background:subj.colorSoft,borderRadius:10,padding:'12px 14px',marginBottom:22,borderInlineStart:`3px solid ${subj.color}`}}>
+          <div className="mono" style={{fontSize:9.5,letterSpacing:.5,color:subj.color,marginBottom:6}}>ملخّص الوحدة (يظهر أولاً للمتعلّم)</div>
+          <textarea defaultValue={unit.summary||''} onBlur={e=>this.saveUnitInlineField(unit,'summary',e.target.value)} placeholder="اكتب ملخصاً قصيراً..." style={{width:'100%',border:'none',outline:'none',background:'none',fontSize:13.5,color:'var(--ink)',resize:'vertical',minHeight:44,padding:0}}></textarea>
+        </div>
+        <div style={{display:'flex',gap:22,borderBottom:'1.5px solid var(--line)',marginBottom:20}}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>this.setState({deskTab:t.id})} style={{border:'none',background:'none',padding:'9px 2px',fontWeight:700,fontSize:13.5,cursor:'pointer',
+              color: this.state.deskTab===t.id?subj.color:'var(--ink-soft)',
+              borderBottom: this.state.deskTab===t.id?`2.5px solid ${subj.color}`:'2.5px solid transparent', marginBottom:-2}}>{t.label}</button>
+          ))}
+        </div>
+        {this.state.deskTab==='notes' && this.renderDesktopTopicsTab(vm2)}
+        {this.state.deskTab==='cards' && this.renderDesktopCardsTab(vm2)}
+        {this.state.deskTab==='quiz' && this.renderDesktopQuizTab(vm2)}
+      </div>
+    );
+  }
+
+  renderDesktopShell(){
+    const vm2 = this.deskUnitViewModel();
+    return (
+      <div dir="rtl" lang="ar" style={{display:'flex',minHeight:'100vh'}}>
+        {this.renderDesktopSidebar()}
+        <div style={{flex:1,overflowY:'auto',height:'100vh'}}>
+          {vm2 && vm2.unit ? this.renderDesktopUnitEditor(vm2) : (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'var(--ink-faint)',fontSize:14}}>اختر أو أنشئ وحدة من القائمة على اليمين لبدء التحرير</div>
+          )}
+        </div>
+        {this.renderModals()}
+      </div>
+    );
+  }
+
+  renderModals(){
+    return (
+      <React.Fragment>
+        {this.state.cfgModalOpen && (
+          <div style={{position:'fixed',inset:0,background:'rgba(23,33,44,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60,padding:20}}>
+            <div style={{background:'var(--paper-2)',borderRadius:18,padding:22,maxWidth:400,width:'100%',border:'1px solid var(--line)',boxShadow:'0 16px 40px rgba(23,33,44,.25)'}}>
+              <div style={{fontWeight:800,fontSize:16,marginBottom:8,fontFamily:"'IBM Plex Sans Arabic',sans-serif"}}>ربط بجدول Google Sheets</div>
+              <div style={{color:'var(--ink-soft)',fontSize:12.5,lineHeight:1.6,marginBottom:12}}>ألصق عنوان الـ Web App الذي حصلت عليه بعد نشر سكريبت التطبيق على جدول Sheets مخصّص.</div>
+              <input ref={this.scriptUrlInputRef} placeholder="https://script.google.com/macros/s/XXXXX/exec" className="mono" style={{width:'100%',fontSize:12,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',marginBottom:14}} />
+              <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
+                <button onClick={()=>this.closeCfgModal()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>إلغاء</button>
+                <button onClick={()=>this.saveCfg()} style={{background:'var(--ink)',color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>حفظ واتصال</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {this.state.lessonModalOpen && (
+          <div style={{position:'fixed',inset:0,background:'rgba(23,33,44,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60,padding:20}}>
+            <div style={{background:'var(--paper-2)',borderRadius:18,padding:22,maxWidth:400,width:'100%',border:'1px solid var(--line)',boxShadow:'0 16px 40px rgba(23,33,44,.25)'}}>
+              <div style={{fontWeight:800,fontSize:16,marginBottom:12,fontFamily:"'IBM Plex Sans Arabic',sans-serif"}}>{this.state.editLessonId ? 'تعديل الدرس' : 'درس جديد'}</div>
+              <input ref={this.lessonTitleRef} placeholder="اسم الدرس" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',fontSize:14,marginBottom:8}} />
+              <textarea ref={this.lessonDescRef} placeholder="وصف قصير للدرس (اختياري)" style={{width:'100%',minHeight:60,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',fontSize:14,marginBottom:14,resize:'vertical'}}></textarea>
+              <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
+                <button onClick={()=>this.closeLessonModal()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>إلغاء</button>
+                <button onClick={()=>this.saveLessonModal()} style={{background:'var(--ink)',color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>حفظ</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {this.state.unitModalOpen && (
+          <div style={{position:'fixed',inset:0,background:'rgba(23,33,44,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60,padding:20}}>
+            <div style={{background:'var(--paper-2)',borderRadius:18,padding:22,maxWidth:400,width:'100%',border:'1px solid var(--line)',boxShadow:'0 16px 40px rgba(23,33,44,.25)'}}>
+              <div style={{fontWeight:800,fontSize:16,marginBottom:12,fontFamily:"'IBM Plex Sans Arabic',sans-serif"}}>{this.state.editUnitId ? 'تعديل الوحدة' : 'وحدة تعلّم جديدة'}</div>
+              <input ref={this.unitTitleRef} placeholder="اسم الوحدة" style={{width:'100%',background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',fontSize:14,marginBottom:8}} />
+              <textarea ref={this.unitDescRef} placeholder="وصف قصير (سطر أو سطرين)" style={{width:'100%',minHeight:60,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',fontSize:14,marginBottom:8,resize:'vertical'}}></textarea>
+              <textarea ref={this.unitSummaryRef} placeholder="ملخّص مختصر للوحدة (يظهر أولاً للمتعلّم)" style={{width:'100%',minHeight:70,background:'#fff',border:'1px solid var(--line)',borderRadius:7,padding:'10px 12px',fontSize:14,marginBottom:14,resize:'vertical'}}></textarea>
+              <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
+                <button onClick={()=>this.closeUnitModal()} style={{background:'none',border:'1px solid var(--line)',color:'var(--ink-soft)',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>إلغاء</button>
+                <button onClick={()=>this.saveUnitModal()} style={{background:'var(--ink)',color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontWeight:700,fontSize:13,cursor:'pointer'}}>حفظ</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {this.state.toast && (
+          <div style={{position:'fixed',bottom:22,left:'50%',transform:'translateX(-50%)',background:'var(--ink)',color:'#fff',padding:'11px 20px',borderRadius:10,fontSize:13,zIndex:70,animation:'toastIn .25s ease',whiteSpace:'nowrap'}}>{this.state.toast}</div>
+        )}
+      </React.Fragment>
+    );
+  }
+
+  render(){
+    if(this.state.isDesktop) return this.renderDesktopShell();
+    const vm = this.viewModel();
+    return (
+      <div dir="rtl" lang="ar" style={{minHeight:'100vh'}}>
+        <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',position:'relative',paddingBottom:48}}>
+          {this.renderHeader(vm)}
+          {vm.isHomeView && this.renderHome(vm)}
+          {vm.isMapView && this.renderMap(vm)}
+          {vm.isLessonView && this.renderLesson(vm)}
+          {vm.isUnitView && this.renderUnit(vm)}
+          {this.renderModals()}
+        </div>
+      </div>
+    );
+  }
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>

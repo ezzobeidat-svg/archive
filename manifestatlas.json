@@ -1,0 +1,21 @@
+{
+  "name": "أطلس الدرس",
+  "short_name": "أطلس الدرس",
+  "description": "تطبيق الدراسة الذاتية - أطلس الدرس",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17212C",
+  "theme_color": "#17212C",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "iconsatlas/icon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "iconsatlas/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "iconsatlas/icon-167.png", "sizes": "167x167", "type": "image/png" },
+    { "src": "iconsatlas/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "iconsatlas/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconsatlas/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
