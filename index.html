@@ -391,6 +391,7 @@ const LS_QUEUE_KEY = 'lc_queue_v1';
 const LS_NAV_KEY = 'lc_nav_v1';
 const LS_URL_KEY = 'lc_url_v1';
 const LS_TOKEN_KEY = 'lc_token_v1';
+const DEFAULT_TOKEN = '1234';
 const BATCH_SIZE = 60;
 const BATCH_BYTES = 3000000;
 const SHEET_KEYS = {
@@ -465,9 +466,9 @@ class App extends React.Component {
       })(),
       token: (() => {
         try {
-          return localStorage.getItem(LS_TOKEN_KEY) || '';
+          return localStorage.getItem(LS_TOKEN_KEY) || DEFAULT_TOKEN;
         } catch (e) {
-          return '';
+          return DEFAULT_TOKEN;
         }
       })(),
       isDesktop: typeof window !== 'undefined' && window.innerWidth >= 880,
@@ -1352,7 +1353,7 @@ class App extends React.Component {
   }
   saveCfg() {
     const val = this.scriptUrlInputRef.current.value.trim();
-    const token = this.tokenInputRef.current ? this.tokenInputRef.current.value.trim() : '';
+    const token = (this.tokenInputRef.current ? this.tokenInputRef.current.value.trim() : '') || DEFAULT_TOKEN;
     if (!val) {
       this.showToast('ألصق رابط السكربت أولًا');
       return;
@@ -4792,7 +4793,7 @@ class App extends React.Component {
         lineHeight: 1.6,
         marginBottom: 6
       }
-    }, "الرمز السري (اتركه فارغًا إذا لم تضبطه في السكربت)"), /*#__PURE__*/React.createElement("input", {
+    }, "الرمز السري (مضبوط تلقائيًا، لا حاجة لتغييره)"), /*#__PURE__*/React.createElement("input", {
       ref: this.tokenInputRef,
       type: "password",
       autoComplete: "off",
